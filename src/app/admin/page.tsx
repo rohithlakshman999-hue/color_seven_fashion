@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
 import {
@@ -18,55 +18,18 @@ interface DashboardStats {
   lowStockProducts: number;
 }
 
-export default function AdminDashboard() {
-  const [stats, setStats] = useState<DashboardStats>({
-    totalProducts: 0,
-    totalBrands: 0,
-    totalCategories: 0,
-    lowStockProducts: 0,
-  });
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchStats();
-  }, []);
-
-  const fetchStats = async () => {
-    try {
-      const [products, brands, categories, inventory] = await Promise.all([
-        supabase.from("products").select("id", { count: "exact" }),
-        supabase.from("brands").select("id", { count: "exact" }),
-        supabase.from("categories").select("id", { count: "exact" }),
-        supabase
-          .from("inventory")
-          .select("id", { count: "exact" })
-          .lt("stock_quantity", "low_stock_threshold"),
-      ]);
-
-      setStats({
-        totalProducts: products.count || 0,
-        totalBrands: brands.count || 0,
-        totalCategories: categories.count || 0,
-        lowStockProducts: inventory.count || 0,
-      });
-    } catch (error) {
-      console.error("Failed to fetch stats:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const StatCard = ({
-    icon: Icon,
-    title,
-    value,
-    href,
-  }: {
-    icon: React.ComponentType<{ className: string }>;
-    title: string;
-    value: number;
-    href: string;
-  }) => (
+function StatCard({
+  icon: Icon,
+  title,
+  value,
+  href,
+}: {
+  icon: React.ComponentType<{ className: string }>;
+  title: string;
+  value: number;
+  href: string;
+}) {
+  return (
     <Link
       href={href}
       className="p-6 bg-zinc-900 border border-white/10 rounded-lg hover:border-[#c9a227]/40 transition-all"
@@ -78,6 +41,45 @@ export default function AdminDashboard() {
       <div className="text-3xl font-bold text-white">{value}</div>
     </Link>
   );
+}
+
+export default function AdminDashboard() {
+  const [stats, setStats] = useState<DashboardStats>({
+    totalProducts: 0,
+    totalBrands: 0,
+    totalCategories: 0,
+    lowStockProducts: 0,
+  });
+  const [loading, setLoading] = useState(true);
+
+  const fetchStats = useCallback(async () => {
+    try {
+      const [products, brands, categories, inventory] = await Promise.all([
+        supabase.from("products").select("id", { count: "exact" }),
+        supabase.from("brands").select("id", { count: "exact" }),
+        supabase.from("categories").select("id", { count: "exact" }),
+        supabase.from("inventory").select("stock_quantity, low_stock_threshold"),
+      ]);
+
+      setStats({
+        totalProducts: products.count || 0,
+        totalBrands: brands.count || 0,
+        totalCategories: categories.count || 0,
+        lowStockProducts:
+          inventory.data?.filter(
+            (item) => item.stock_quantity <= item.low_stock_threshold
+          ).length || 0,
+      });
+    } catch (error) {
+      console.error("Failed to fetch stats:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void Promise.resolve().then(fetchStats);
+  }, [fetchStats]);
 
   return (
     <div className="space-y-8">
@@ -119,7 +121,7 @@ export default function AdminDashboard() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Link
-              href="/admin/products/new"
+              href="/admin/products"
               className="p-8 bg-gradient-to-br from-[#c9a227]/20 to-black border border-[#c9a227]/30 rounded-lg hover:border-[#c9a227]/60 transition-all text-center"
             >
               <ShoppingBag className="w-8 h-8 text-[#c9a227] mx-auto mb-4" />
@@ -130,7 +132,7 @@ export default function AdminDashboard() {
             </Link>
 
             <Link
-              href="/admin/brands/new"
+              href="/admin/brands"
               className="p-8 bg-gradient-to-br from-[#c9a227]/20 to-black border border-[#c9a227]/30 rounded-lg hover:border-[#c9a227]/60 transition-all text-center"
             >
               <Tag className="w-8 h-8 text-[#c9a227] mx-auto mb-4" />
@@ -141,7 +143,7 @@ export default function AdminDashboard() {
             </Link>
 
             <Link
-              href="/admin/categories/new"
+              href="/admin/categories"
               className="p-8 bg-gradient-to-br from-[#c9a227]/20 to-black border border-[#c9a227]/30 rounded-lg hover:border-[#c9a227]/60 transition-all text-center"
             >
               <Layers className="w-8 h-8 text-[#c9a227] mx-auto mb-4" />
@@ -152,7 +154,7 @@ export default function AdminDashboard() {
             </Link>
 
             <Link
-              href="/admin/inventory"
+              href="/admin/products"
               className="p-8 bg-gradient-to-br from-[#c9a227]/20 to-black border border-[#c9a227]/30 rounded-lg hover:border-[#c9a227]/60 transition-all text-center"
             >
               <TrendingUp className="w-8 h-8 text-[#c9a227] mx-auto mb-4" />

@@ -18,13 +18,10 @@ export default function AdminLayout({
 
   const menuItems = [
     { href: "/admin", label: "Dashboard" },
-    { href: "/admin/seed", label: "🌱 Seed Database" },
+    { href: "/admin/seed", label: "Seed Database" },
     { href: "/admin/categories", label: "Categories" },
     { href: "/admin/brands", label: "Brands" },
     { href: "/admin/products", label: "Products" },
-    { href: "/admin/inventory", label: "Inventory" },
-    { href: "/admin/orders", label: "Orders" },
-    { href: "/admin/users", label: "Users" },
   ];
 
   return (
