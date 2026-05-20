@@ -1,0 +1,162 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Permanent+Marker&display=swap');
+@import "tailwindcss";
+
+:root {
+  --background: #000000;
+  --foreground: #ffffff;
+  --accent-1: #CFF227;
+  --accent-2: #a3e635;
+  --accent-3: #ffffff;
+  --font-inter: 'Inter', sans-serif;
+  --font-permanent-marker: 'Permanent Marker', cursive;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-accent-1: var(--accent-1);
+  --color-accent-2: var(--accent-2);
+  --color-accent-3: var(--accent-3);
+  --color-black: #000000;
+  --color-zinc-900: #18181b;
+  --color-zinc-800: #27272a;
+  --color-white: #ffffff;
+  
+  --font-sans: var(--font-inter);
+  --font-serif: var(--font-permanent-marker);
+  --font-brush: var(--font-permanent-marker);
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+::selection {
+  background-color: var(--accent-1);
+  color: #000000;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #000;
+}
+::-webkit-scrollbar-thumb {
+  background: #222;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-1);
+}
+
+.heading-luxury {
+  font-family: var(--font-serif);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+/* Utilities for smooth transitions */
+.transition-luxury {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Animated Gradient Backgrounds */
+.animate-gradient-x {
+  background-size: 200% 200%;
+  animation: gradient-x 5s ease infinite;
+}
+
+@keyframes gradient-x {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.text-gradient {
+  background: linear-gradient(to right, var(--accent-1), var(--accent-2), var(--accent-3));
+  background-size: 200% auto;
+  color: transparent;
+  -webkit-background-clip: text;
+  background-clip: text;
+  animation: gradient-x 5s ease infinite;
+}
+
+.text-outline {
+  color: transparent;
+  -webkit-text-stroke: 1px rgba(255, 255, 255, 0.3);
+}
+
+.text-outline:hover {
+  -webkit-text-stroke: 1px var(--accent-1);
+  color: rgba(207, 242, 39, 0.1);
+  transition: all 0.3s ease;
+}
+
+/* Ambient glow blobs */
+.ambient-blob {
+  position: absolute;
+  filter: blur(100px);
+  opacity: 0.2;
+  border-radius: 50%;
+  z-index: 0;
+  animation: float 10s ease-in-out infinite alternate;
+}
+
+@keyframes float {
+  0% { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(30px, 50px) scale(1.1); }
+}
+
+/* Custom Outlaw Utilities */
+.font-brush {
+  font-family: var(--font-brush), cursive;
+}
+
+.neon-glow {
+  text-shadow: 0 0 10px rgba(207, 242, 39, 0.4), 0 0 20px rgba(207, 242, 39, 0.2);
+}
+
+.border-neon {
+  border-color: rgba(207, 242, 39, 0.2);
+  transition: all 0.3s ease;
+}
+
+.border-neon:hover {
+  border-color: var(--accent-1);
+  box-shadow: 0 0 15px rgba(207, 242, 39, 0.25);
+}
+
+.circle-revolve {
+  animation: rotate-circle 40s linear infinite;
+}
+
+@keyframes rotate-circle {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Infinite scrolling marquee for announcement bar */
+@keyframes marquee {
+  0% { transform: translateX(0%); }
+  100% { transform: translateX(-100%); }
+}
+@keyframes marquee2 {
+  0% { transform: translateX(100%); }
+  100% { transform: translateX(0%); }
+}
+.animate-marquee-scroll {
+  animation: marquee 25s linear infinite;
+}
+.animate-marquee-scroll2 {
+  animation: marquee2 25s linear infinite;
+}
