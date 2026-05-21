@@ -32,6 +32,11 @@ export default function SupabaseProductDetail({
 
   useEffect(() => {
     const fetchProduct = async () => {
+      if (!supabase) {
+        setError("Product details require Supabase configuration");
+        setLoading(false);
+        return;
+      }
       try {
         setLoading(true);
         const { data, error: productError } = await supabase

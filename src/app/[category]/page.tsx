@@ -1,38 +1,48 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { use, useMemo, useState } from "react";
 import Link from "next/link";
 import { brandOptionKey } from "@/lib/catalogHelpers";
-import {
-  getCategoryBySlug,
-  getBrandsForCategorySlug,
-} from "@/lib/brandStorage";
+import { useCatalog } from "@/context/CatalogContext";
 import { ArrowRight, Search } from "lucide-react";
 
-interface CategoryPageProps {
-  params: {
-    slug: string;
-  };
-}
-
-export default function CategoryPage({ params }: CategoryPageProps) {
+export default function CategoryPage({
+  params,
+}: {
+  params: Promise<{ category: string }>;
+}) {
+  const { category: categorySlug } = use(params);
   const [searchTerm, setSearchTerm] = useState("");
+  const { categories, brands, loading } = useCatalog();
 
   const category = useMemo(
-    () => getCategoryBySlug(params.slug),
-    [params.slug]
+    () => categories.find((c) => c.slug === categorySlug),
+    [categories, categorySlug]
   );
 
-  const brands = useMemo(
-    () => getBrandsForCategorySlug(params.slug),
-    [params.slug]
+  const categoryBrands = useMemo(
+    () =>
+      brands.filter(
+        (b) => b.category_id === categorySlug && b.is_active !== false
+      ),
+    [brands, categorySlug]
   );
 
   const filteredBrands = useMemo(() => {
-    if (!searchTerm.trim()) return brands;
+    if (!searchTerm.trim()) return categoryBrands;
     const q = searchTerm.toLowerCase();
-    return brands.filter((brand) => brand.name.toLowerCase().includes(q));
-  }, [brands, searchTerm]);
+    return categoryBrands.filter((brand) =>
+      brand.name.toLowerCase().includes(q)
+    );
+  }, [categoryBrands, searchTerm]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-black">
+        <div className="w-10 h-10 border-2 border-[#c9a227] border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   if (!category) {
     return (
@@ -42,7 +52,7 @@ export default function CategoryPage({ params }: CategoryPageProps) {
           <p className="text-zinc-500">Category not found</p>
           <Link
             href="/shop"
-            className="inline-block mt-4 px-6 py-2 border border-[#c9a227] text-[#c9a227] hover:bg-[#c9a227] hover:text-black transition-all"
+            className="inline-block mt-4 px-6 py-2 border border-[#c9a227] text-[#c9a227]"
           >
             Back to Shop
           </Link>
@@ -54,9 +64,6 @@ export default function CategoryPage({ params }: CategoryPageProps) {
   return (
     <div className="min-h-screen bg-black text-white pt-20 pb-24">
       <div className="relative py-16 md:py-24 px-4 md:px-8 border-b border-white/5">
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] bg-[rgba(201,162,39,0.08)] rounded-full filter blur-[100px]" />
-        </div>
         <div className="relative z-10 max-w-6xl mx-auto">
           <p className="text-sm tracking-[0.3em] uppercase font-black text-[#c9a227] mb-4">
             EXPLORE
@@ -80,8 +87,7 @@ export default function CategoryPage({ params }: CategoryPageProps) {
           />
         </div>
         <p className="text-sm text-zinc-500 mt-2">
-          Found {filteredBrands.length} brand
-          {filteredBrands.length !== 1 ? "s" : ""}
+          {filteredBrands.length} brand{filteredBrands.length !== 1 ? "s" : ""}
         </p>
       </div>
 
@@ -91,45 +97,26 @@ export default function CategoryPage({ params }: CategoryPageProps) {
             {filteredBrands.map((brand) => (
               <Link
                 key={brandOptionKey(brand)}
-                href={`/${params.slug}/${brand.slug}`}
+                href={`/${categorySlug}/${brand.slug}`}
                 className="group block h-full"
               >
-                <div className="bg-zinc-900 border border-white/5 rounded-lg overflow-hidden hover:border-[#c9a227]/40 transition-colors duration-200 h-full flex flex-col">
-                  <div className="relative h-48 bg-black/50 flex items-center justify-center">
-                    <span className="text-4xl font-black text-[#c9a227]/40 group-hover:text-[#c9a227] transition-colors">
-                      {brand.name.charAt(0)}
-                    </span>
-                  </div>
-                  <div className="p-6 flex-1 flex flex-col">
-                    <h3 className="text-2xl font-bold mb-2 group-hover:text-[#c9a227] transition-colors">
-                      {brand.name}
-                    </h3>
-                    <p className="text-zinc-400 text-sm mb-4 flex-1 line-clamp-2">
-                      {brand.description}
-                    </p>
-                    {brand.featured && (
-                      <div className="inline-flex items-center gap-1 px-2 py-1 bg-yellow-500/10 text-yellow-400 rounded text-xs font-semibold mb-3 w-fit">
-                        Featured
-                      </div>
-                    )}
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold uppercase tracking-wider text-[#c9a227]">
-                        View Collection
-                      </span>
-                      <ArrowRight className="w-4 h-4 text-[#c9a227] group-hover:translate-x-1 transition-transform" />
-                    </div>
-                  </div>
+                <div className="bg-zinc-900 border border-white/5 rounded-lg overflow-hidden hover:border-[#c9a227]/40 transition-colors duration-200 h-full flex flex-col p-6">
+                  <h3 className="text-2xl font-bold mb-2 group-hover:text-[#c9a227] transition-colors">
+                    {brand.name}
+                  </h3>
+                  <p className="text-zinc-400 text-sm mb-4 flex-1 line-clamp-2">
+                    {brand.description}
+                  </p>
+                  <span className="text-xs font-bold uppercase tracking-wider text-[#c9a227] inline-flex items-center gap-1">
+                    View Collection <ArrowRight className="w-4 h-4" />
+                  </span>
                 </div>
               </Link>
             ))}
           </div>
         ) : (
-          <div className="text-center py-16">
-            <p className="text-zinc-500">
-              {searchTerm
-                ? `No brands found matching "${searchTerm}"`
-                : "No brands available in this category yet"}
-            </p>
+          <div className="text-center py-16 text-zinc-500">
+            No brands in this category yet.
           </div>
         )}
       </div>

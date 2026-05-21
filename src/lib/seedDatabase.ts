@@ -6,6 +6,10 @@ import { allBrands, categories } from "@/data/brands";
 import { buildBrandId, slugifyName } from "@/lib/brandStorage";
 
 export async function seedCategories() {
+  if (!supabase) {
+    console.error("Supabase is not configured");
+    return;
+  }
   try {
     console.log("Seeding categories...");
 
@@ -32,6 +36,10 @@ export async function seedCategories() {
 }
 
 export async function seedBrands() {
+  if (!supabase) {
+    console.error("Supabase is not configured");
+    return;
+  }
   try {
     console.log("Seeding brands...");
 

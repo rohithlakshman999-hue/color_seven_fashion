@@ -7,7 +7,7 @@ import { ArrowLeft, X, Save, AlertCircle } from "lucide-react";
 import Link from "next/link";
 import { useProducts } from "@/context/ProductContext";
 import { Plus } from "lucide-react";
-import { loadAdminCatalog } from "@/lib/brandStorage";
+import { useCatalog } from "@/context/CatalogContext";
 import {
   PRODUCT_CATEGORIES,
   getBrandsForProductCategory,
@@ -23,6 +23,7 @@ export default function EditProductPage({
   const { id } = use(params);
   const router = useRouter();
   const { getProductById, updateProduct } = useProducts();
+  const { brands: catalogBrands } = useCatalog();
 
   const [loaded, setLoaded] = useState(false);
   const [notFound, setNotFound] = useState(false);
@@ -55,7 +56,7 @@ export default function EditProductPage({
 
     const available = getBrandsForProductCategory(
       product.category,
-      loadAdminCatalog().brands
+      catalogBrands
     );
     const isPredefined = available.some((b) => b.name === product.brand);
     if (!isPredefined && product.brand) {
@@ -75,11 +76,11 @@ export default function EditProductPage({
     setIsNew(product.isNew);
     setLoaded(true);
     initialLoadDone.current = true;
-  }, [id, getProductById]);
+  }, [id, getProductById, catalogBrands]);
 
   const brandsForCategory = getBrandsForProductCategory(
     category,
-    loadAdminCatalog().brands
+    catalogBrands
   );
 
   const addImageField = () => {
@@ -289,7 +290,7 @@ export default function EditProductPage({
               if (initialLoadDone.current && !isCustomBrand) {
                 const list = getBrandsForProductCategory(
                   next,
-                  loadAdminCatalog().brands
+                  catalogBrands
                 );
                 if (list.length > 0) setBrand(list[0].name);
               }

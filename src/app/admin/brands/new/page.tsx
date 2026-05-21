@@ -2,9 +2,8 @@
 
 import { useState, useEffect, FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { useCatalog } from "@/context/CatalogContext";
 import { supabase } from "@/lib/supabase";
-import { Category } from "@/types/database";
-import { loadAdminCatalog, addStoredBrand } from "@/lib/brandStorage";
 import AdminSelect, { AdminSelectOption } from "@/components/AdminSelect";
 import { ArrowLeft, Upload, X, Loader, AlertCircle, CheckCircle } from "lucide-react";
 import Link from "next/link";
@@ -12,10 +11,11 @@ import Image from "next/image";
 
 export default function AddBrandPage() {
   const router = useRouter();
+  const { categories: allCategories, loading: catalogLoading, addBrand, refresh } = useCatalog();
+  const categories = allCategories.filter((c) => c.is_active);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState({ text: "", type: "" as "success" | "error" });
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [message, setMessage] = useState({ text: "", type: "" as "success" | "error" | "" });
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingBanner, setUploadingBanner] = useState(false);
 
@@ -35,14 +35,13 @@ export default function AddBrandPage() {
   const [bannerPreview, setBannerPreview] = useState("");
 
   useEffect(() => {
-    const { categories: cats } = loadAdminCatalog();
-    const active = cats.filter((c) => c.is_active);
-    setCategories(active);
-    if (active.length > 0) {
-      setFormData((prev) => ({ ...prev, categoryId: active[0].id }));
+    if (!catalogLoading) {
+      if (categories.length > 0 && !formData.categoryId) {
+        setFormData((prev) => ({ ...prev, categoryId: categories[0].id }));
+      }
+      setLoading(false);
     }
-    setLoading(false);
-  }, []);
+  }, [catalogLoading, categories, formData.categoryId]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target as any;
@@ -58,6 +57,10 @@ export default function AddBrandPage() {
       return;
     }
 
+    if (!supabase) {
+      setMessage({ text: "Image upload requires Supabase configuration", type: "error" });
+      return;
+    }
     setUploadingLogo(true);
     try {
       const fileName = `${Date.now()}-${file.name.replace(/\s+/g, "-")}`;
@@ -88,6 +91,10 @@ export default function AddBrandPage() {
       return;
     }
 
+    if (!supabase) {
+      setMessage({ text: "Image upload requires Supabase configuration", type: "error" });
+      return;
+    }
     setUploadingBanner(true);
     try {
       const fileName = `${Date.now()}-${file.name.replace(/\s+/g, "-")}`;
@@ -129,7 +136,7 @@ export default function AddBrandPage() {
       const category = categories.find((c) => c.id === formData.categoryId);
       if (!category) throw new Error("Invalid category");
 
-      addStoredBrand({
+      await addBrand({
         category_id: formData.categoryId,
         name: formData.name.trim(),
         slug: generateSlug(formData.name),
@@ -141,6 +148,7 @@ export default function AddBrandPage() {
         featured: formData.featured,
         is_active: formData.isActive,
       });
+      await refresh();
 
       setMessage({ text: "✓ Brand added successfully!", type: "success" });
       setTimeout(() => router.push("/admin/brands"), 1500);

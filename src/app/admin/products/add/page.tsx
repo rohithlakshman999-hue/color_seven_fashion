@@ -4,9 +4,10 @@ import { useState, useEffect, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { Category, Brand } from "@/types/database";
-import { loadAdminCatalog } from "@/lib/brandStorage";
+import { useCatalog } from "@/context/CatalogContext";
 import { useProducts } from "@/context/ProductContext";
-import { slugToProductCategory, brandOptionKey } from "@/lib/catalogHelpers";
+import { slugToProductCategory } from "@/lib/catalogHelpers";
+import { brandOptionKey } from "@/lib/catalogHelpers";
 import AdminSelect, { AdminSelectOption } from "@/components/AdminSelect";
 import { ArrowLeft, Upload, X, Loader, AlertCircle, CheckCircle } from "lucide-react";
 import Link from "next/link";
@@ -14,12 +15,11 @@ import Image from "next/image";
 
 export default function AddProductPage() {
   const router = useRouter();
+  const { categories, brands, loading: catalogLoading } = useCatalog();
   const { addProduct } = useProducts();
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState({ text: "", type: "" as "success" | "error" });
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [brands, setBrands] = useState<Brand[]>([]);
   const [uploadingImages, setUploadingImages] = useState<boolean[]>([]);
 
   // Form state
@@ -51,11 +51,8 @@ export default function AddProductPage() {
   const [imagePreviews, setImagePreviews] = useState<string[]>(["", "", "", "", ""]);
 
   useEffect(() => {
-    const { categories: cats, brands: brs } = loadAdminCatalog();
-    setCategories(cats);
-    setBrands(brs);
-    setLoading(false);
-  }, []);
+    if (!catalogLoading) setLoading(false);
+  }, [catalogLoading]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target as HTMLInputElement;
@@ -98,6 +95,10 @@ export default function AddProductPage() {
 
     try {
       const fileName = `${Date.now()}-${file.name}`;
+      if (!supabase) {
+        setMessage({ text: "Image upload requires Supabase configuration", type: "error" });
+        return;
+      }
       const { data, error } = await supabase.storage
         .from("product-images")
         .upload(`products/${fileName}`, file);
@@ -166,7 +167,7 @@ export default function AddProductPage() {
         parseFloat(formData.originalPrice) ||
         0;
 
-      addProduct({
+      await addProduct({
         name: formData.name.trim(),
         brand: selectedBrand.name,
         price,

@@ -1,44 +1,38 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Category } from "@/types/database";
-import {
-  loadAdminCatalog,
-  updateStoredCategory,
-  deleteStoredCategory,
-} from "@/lib/brandStorage";
-import { Plus, Edit2, Trash2, Eye, EyeOff, Layers } from "lucide-react";
+import { useMemo } from "react";
+import { useCatalog } from "@/context/CatalogContext";
+import { Plus, Trash2, Eye, EyeOff, Layers, Cloud, HardDrive } from "lucide-react";
 import Link from "next/link";
 
 export default function AdminCategories() {
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [brandCounts, setBrandCounts] = useState<Record<string, number>>({});
-  const [loading, setLoading] = useState(true);
+  const {
+    categories,
+    brands,
+    loading,
+    syncedToCloud,
+    refresh,
+    updateCategory,
+    deleteCategory,
+  } = useCatalog();
 
-  const refresh = () => {
-    const { categories: cats, brands } = loadAdminCatalog();
-    setCategories(cats);
+  const brandCounts = useMemo(() => {
     const counts: Record<string, number> = {};
     brands.forEach((b) => {
       counts[b.category_id] = (counts[b.category_id] || 0) + 1;
     });
-    setBrandCounts(counts);
-    setLoading(false);
+    return counts;
+  }, [brands]);
+
+  const toggleActive = async (id: string, isActive: boolean) => {
+    await updateCategory(id, { is_active: !isActive });
+    await refresh();
   };
 
-  useEffect(() => {
-    refresh();
-  }, []);
-
-  const toggleActive = (id: string, isActive: boolean) => {
-    updateStoredCategory(id, { is_active: !isActive });
-    refresh();
-  };
-
-  const handleDelete = (id: string) => {
-    if (!confirm("Delete this category and its brands?")) return;
-    deleteStoredCategory(id);
-    refresh();
+  const handleDelete = async (id: string) => {
+    if (!confirm("Delete this category and its brands? This cannot be undone.")) return;
+    await deleteCategory(id);
+    await refresh();
   };
 
   if (loading) {
@@ -56,8 +50,17 @@ export default function AdminCategories() {
           <h1 className="text-3xl md:text-4xl font-black uppercase tracking-tight font-serif text-white">
             Categories
           </h1>
-          <p className="text-zinc-400 mt-1">
-            {categories.length} categories · Watches, Shoes, Clothing & more
+          <p className="text-zinc-400 mt-1 flex items-center gap-2 flex-wrap">
+            <span>{categories.length} categories</span>
+            {syncedToCloud ? (
+              <span className="inline-flex items-center gap-1 text-xs text-green-400 font-bold">
+                <Cloud className="w-3.5 h-3.5" /> Synced to cloud (all devices)
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 text-xs text-amber-400 font-bold">
+                <HardDrive className="w-3.5 h-3.5" /> This browser only — add Supabase in .env.local
+              </span>
+            )}
           </p>
         </div>
         <Link
@@ -69,7 +72,6 @@ export default function AdminCategories() {
         </Link>
       </div>
 
-      {/* Category cards — always visible */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {categories.map((cat) => (
           <div
@@ -95,90 +97,18 @@ export default function AdminCategories() {
             <p className="text-sm font-bold text-[#c9a227] mt-1">
               {brandCounts[cat.id] || 0} brands
             </p>
-            <p className="text-sm text-zinc-400 mt-2 line-clamp-2">
-              {cat.description}
-            </p>
-            <p className="text-xs text-zinc-500 mt-2 font-mono">/{cat.slug}</p>
+            <p className="text-sm text-zinc-400 mt-2 line-clamp-2">{cat.description}</p>
+            <div className="flex gap-2 mt-4">
+              <button
+                onClick={() => handleDelete(cat.id)}
+                className="p-2 hover:bg-red-500/10 rounded"
+                title="Delete"
+              >
+                <Trash2 className="w-4 h-4 text-red-500" />
+              </button>
+            </div>
           </div>
         ))}
-      </div>
-
-      {/* Full table */}
-      <div className="overflow-x-auto rounded-2xl border border-white/10">
-        <table className="w-full">
-          <thead className="bg-zinc-900 border-b border-white/10">
-            <tr>
-              <th className="px-6 py-4 text-left text-xs font-black uppercase tracking-wider text-[#c9a227]">
-                Name
-              </th>
-              <th className="px-6 py-4 text-left text-xs font-black uppercase tracking-wider text-[#c9a227]">
-                Slug
-              </th>
-              <th className="px-6 py-4 text-left text-xs font-black uppercase tracking-wider text-[#c9a227]">
-                Brands
-              </th>
-              <th className="px-6 py-4 text-left text-xs font-black uppercase tracking-wider text-[#c9a227]">
-                Description
-              </th>
-              <th className="px-6 py-4 text-center text-xs font-black uppercase tracking-wider text-[#c9a227]">
-                Status
-              </th>
-              <th className="px-6 py-4 text-center text-xs font-black uppercase tracking-wider text-[#c9a227]">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {categories.map((cat) => (
-              <tr
-                key={cat.id}
-                className="border-b border-white/5 hover:bg-white/[0.03]"
-              >
-                <td className="px-6 py-4">
-                  <span className="font-bold text-white text-base">
-                    {cat.name}
-                  </span>
-                </td>
-                <td className="px-6 py-4 font-semibold text-zinc-300">
-                  {cat.slug}
-                </td>
-                <td className="px-6 py-4">
-                  <span className="font-bold text-[#c9a227]">
-                    {brandCounts[cat.id] || 0}
-                  </span>
-                </td>
-                <td className="px-6 py-4 text-zinc-300 max-w-xs truncate">
-                  {cat.description}
-                </td>
-                <td className="px-6 py-4 text-center">
-                  <button onClick={() => toggleActive(cat.id, cat.is_active)}>
-                    {cat.is_active ? (
-                      <Eye className="w-5 h-5 text-green-500 mx-auto" />
-                    ) : (
-                      <EyeOff className="w-5 h-5 text-zinc-500 mx-auto" />
-                    )}
-                  </button>
-                </td>
-                <td className="px-6 py-4">
-                  <div className="flex items-center justify-center gap-2">
-                    <Link
-                      href={`/admin/brands?category=${cat.slug}`}
-                      className="p-2 hover:bg-white/5 rounded text-xs font-bold text-[#c9a227]"
-                    >
-                      View Brands
-                    </Link>
-                    <button
-                      onClick={() => handleDelete(cat.id)}
-                      className="p-2 hover:bg-red-500/10 rounded"
-                    >
-                      <Trash2 className="w-4 h-4 text-red-500" />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
       </div>
     </div>
   );

@@ -6,11 +6,18 @@ import {
   useState,
   useEffect,
   useCallback,
-  useRef,
   useMemo,
   ReactNode,
 } from "react";
-import { products as defaultProducts } from "@/data/products";
+import {
+  loadProducts,
+  refreshProducts,
+  addProduct as storeAddProduct,
+  updateProduct as storeUpdateProduct,
+  deleteProduct as storeDeleteProduct,
+  getProductsSync,
+} from "@/lib/productsStore";
+import { isSupabaseConfigured } from "@/lib/supabase";
 
 export interface Product {
   id: string;
@@ -28,93 +35,63 @@ export interface Product {
 interface ProductContextType {
   products: Product[];
   loaded: boolean;
-  addProduct: (product: Omit<Product, "id">) => void;
-  updateProduct: (id: string, product: Partial<Product>) => void;
-  deleteProduct: (id: string) => void;
+  syncedToCloud: boolean;
+  refresh: () => Promise<void>;
+  addProduct: (product: Omit<Product, "id">) => Promise<void>;
+  updateProduct: (id: string, product: Partial<Product>) => Promise<void>;
+  deleteProduct: (id: string) => Promise<void>;
   getProductById: (id: string) => Product | undefined;
 }
 
 const ProductContext = createContext<ProductContextType | undefined>(undefined);
 
-const STORAGE_KEY = "colour_seven_products";
-
-function readProductsFromStorage(): Product[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored !== null) {
-      const parsed = JSON.parse(stored) as Product[];
-      if (Array.isArray(parsed)) return parsed;
-    }
-  } catch {
-    // ignore
-  }
-  const withBrand: Product[] = defaultProducts.map((p) => ({
-    ...p,
-    brand: p.brand || "Colour Seven",
-  }));
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(withBrand));
-  return withBrand;
-}
-
-function writeProductsToStorage(products: Product[]) {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(products));
-}
-
-function getInitialProducts(): Product[] {
-  if (typeof window === "undefined") return [];
-  return readProductsFromStorage();
-}
-
 export function ProductProvider({ children }: { children: ReactNode }) {
-  const [products, setProducts] = useState<Product[]>(getInitialProducts);
-  const [loaded, setLoaded] = useState(() => typeof window !== "undefined");
-  const skipNextSave = useRef(true);
+  const [products, setProducts] = useState<Product[]>(() =>
+    typeof window !== "undefined" ? getProductsSync() : []
+  );
+  const [loaded, setLoaded] = useState(false);
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    setProducts(readProductsFromStorage());
-    setLoaded(true);
+  const refresh = useCallback(async () => {
+    const data = await refreshProducts();
+    setProducts(data);
   }, []);
 
   useEffect(() => {
-    if (!loaded) return;
-    if (skipNextSave.current) {
-      skipNextSave.current = false;
-      return;
-    }
-    writeProductsToStorage(products);
-  }, [products, loaded]);
+    let active = true;
+    (async () => {
+      try {
+        const data = await loadProducts(true);
+        if (active) setProducts(data);
+      } finally {
+        if (active) setLoaded(true);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     const onStorage = (e: StorageEvent) => {
-      if (e.key === STORAGE_KEY && e.newValue) {
-        try {
-          const parsed = JSON.parse(e.newValue) as Product[];
-          if (Array.isArray(parsed)) {
-            skipNextSave.current = true;
-            setProducts(parsed);
-          }
-        } catch {
-          // ignore
-        }
+      if (
+        e.key?.startsWith("colour_seven_products") ||
+        e.key === "colour_seven_products_customized"
+      ) {
+        void refresh();
       }
     };
     window.addEventListener("storage", onStorage);
     return () => window.removeEventListener("storage", onStorage);
-  }, []);
+  }, [refresh]);
 
-  const addProduct = useCallback((product: Omit<Product, "id">) => {
-    const newProduct: Product = {
-      ...product,
-      id: Date.now().toString() + Math.random().toString(36).substring(2, 9),
-    };
-    setProducts((prev) => [...prev, newProduct]);
+  const addProduct = useCallback(async (product: Omit<Product, "id">) => {
+    const created = await storeAddProduct(product);
+    setProducts((prev) => [...prev, created]);
   }, []);
 
   const updateProduct = useCallback(
-    (id: string, updates: Partial<Product>) => {
+    async (id: string, updates: Partial<Product>) => {
+      await storeUpdateProduct(id, updates);
       setProducts((prev) =>
         prev.map((p) => (p.id === id ? { ...p, ...updates } : p))
       );
@@ -122,7 +99,8 @@ export function ProductProvider({ children }: { children: ReactNode }) {
     []
   );
 
-  const deleteProduct = useCallback((id: string) => {
+  const deleteProduct = useCallback(async (id: string) => {
+    await storeDeleteProduct(id);
     setProducts((prev) => prev.filter((p) => p.id !== id));
   }, []);
 
@@ -135,12 +113,22 @@ export function ProductProvider({ children }: { children: ReactNode }) {
     () => ({
       products,
       loaded,
+      syncedToCloud: isSupabaseConfigured,
+      refresh,
       addProduct,
       updateProduct,
       deleteProduct,
       getProductById,
     }),
-    [products, loaded, addProduct, updateProduct, deleteProduct, getProductById]
+    [
+      products,
+      loaded,
+      refresh,
+      addProduct,
+      updateProduct,
+      deleteProduct,
+      getProductById,
+    ]
   );
 
   return (

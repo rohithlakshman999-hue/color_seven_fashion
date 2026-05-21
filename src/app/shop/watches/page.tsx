@@ -6,7 +6,7 @@ import { useState, useMemo, memo } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import ProductCard from "@/components/ProductCard";
 import { useProducts } from "@/context/ProductContext";
-import { brandsByCategory } from "@/data/brands";
+import { useCatalog } from "@/context/CatalogContext";
 import { ArrowLeft, Watch, Search, SlidersHorizontal, Tag } from "lucide-react";
 
 const BrandListButton = memo(function BrandListButton({
@@ -48,6 +48,7 @@ const BrandListButton = memo(function BrandListButton({
 
 export default function WatchesPage() {
   const { products } = useProducts();
+  const { brands } = useCatalog();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
 
@@ -56,10 +57,11 @@ export default function WatchesPage() {
     return products.filter((p) => p.category === "Watches");
   }, [products]);
 
-  // Static list of all 53 watch brands
   const watchBrands = useMemo(() => {
-    return brandsByCategory.watches || [];
-  }, []);
+    return brands
+      .filter((b) => b.category_id === "watches" && b.is_active !== false)
+      .map((b) => ({ name: b.name, description: b.description }));
+  }, [brands]);
 
   // Compute product counts for each watch brand dynamically
   const brandProductCounts = useMemo(() => {

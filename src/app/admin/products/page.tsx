@@ -28,8 +28,8 @@ export default function AdminProductsPage() {
     return matchesSearch && matchesCategory;
   });
 
-  const handleDelete = (id: string) => {
-    deleteProduct(id);
+  const handleDelete = async (id: string) => {
+    await deleteProduct(id);
     setDeleteConfirm(null);
   };
 

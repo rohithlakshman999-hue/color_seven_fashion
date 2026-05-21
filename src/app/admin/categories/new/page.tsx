@@ -3,7 +3,8 @@
 import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { addStoredCategory } from "@/lib/brandStorage";
+import { addCategory } from "@/lib/catalogStore";
+import { useCatalog } from "@/context/CatalogContext";
 import AdminSelect, { AdminSelectOption } from "@/components/AdminSelect";
 import { ArrowLeft, Upload, Loader, AlertCircle, CheckCircle } from "lucide-react";
 import Link from "next/link";
@@ -11,8 +12,9 @@ import Image from "next/image";
 
 export default function AddCategoryPage() {
   const router = useRouter();
+  const { refresh } = useCatalog();
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState({ text: "", type: "" as "success" | "error" });
+  const [message, setMessage] = useState({ text: "", type: "" as "success" | "error" | "" });
 
   const [formData, setFormData] = useState({
     name: "",
@@ -40,6 +42,10 @@ export default function AddCategoryPage() {
       return;
     }
 
+    if (!supabase) {
+      setMessage({ text: "Image upload requires Supabase configuration", type: "error" });
+      return;
+    }
     setUploading(true);
     try {
       const fileName = `${Date.now()}-${file.name.replace(/\s+/g, "-")}`;
@@ -78,7 +84,7 @@ export default function AddCategoryPage() {
 
     setLoading(true);
     try {
-      addStoredCategory({
+      await addCategory({
         name: formData.name.trim(),
         slug: generateSlug(formData.name),
         description: formData.description.trim(),
@@ -87,6 +93,7 @@ export default function AddCategoryPage() {
         display_order: parseInt(formData.displayOrder) || 0,
         is_active: formData.isActive,
       });
+      await refresh();
 
       setMessage({ text: "✓ Category added successfully!", type: "success" });
       setTimeout(() => router.push("/admin/categories"), 1500);

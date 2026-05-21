@@ -1,13 +1,7 @@
 import type { Product } from "@/context/ProductContext";
 import type { Brand } from "@/types/database";
 
-/** Stable unique key for React lists and select options */
-export function brandOptionKey(brand: {
-  category_id: string;
-  id: string;
-}): string {
-  return `${brand.category_id}::${brand.id}`;
-}
+export { brandOptionKey } from "@/lib/catalogStore";
 
 export const PRODUCT_CATEGORIES = [
   "Watches",

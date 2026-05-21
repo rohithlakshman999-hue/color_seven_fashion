@@ -3,11 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Brand, Category } from "@/types/database";
-import {
-  loadAdminCatalog,
-  updateStoredBrand,
-  deleteStoredBrand,
-} from "@/lib/brandStorage";
+import { useCatalog } from "@/context/CatalogContext";
 import { Plus, Edit2, Trash2, Star, Tag } from "lucide-react";
 import Link from "next/link";
 import { brandOptionKey } from "@/lib/catalogHelpers";
@@ -86,21 +82,15 @@ function AdminBrandsContent() {
   const searchParams = useSearchParams();
   const categoryFilter = searchParams.get("category") || "";
 
-  const [brands, setBrands] = useState<Brand[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
+  const {
+    brands,
+    categories,
+    loading,
+    refresh,
+    updateBrand,
+    deleteBrand,
+  } = useCatalog();
   const [selectedCategory, setSelectedCategory] = useState("");
-
-  const refresh = () => {
-    const { categories: cats, brands: brs } = loadAdminCatalog();
-    setCategories(cats);
-    setBrands(brs);
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    refresh();
-  }, []);
 
   useEffect(() => {
     if (categoryFilter && categories.length > 0) {
@@ -109,15 +99,15 @@ function AdminBrandsContent() {
     }
   }, [categoryFilter, categories]);
 
-  const toggleFeatured = (id: string, featured: boolean) => {
-    updateStoredBrand(id, { featured: !featured });
-    refresh();
+  const toggleFeatured = async (id: string, featured: boolean) => {
+    await updateBrand(id, { featured: !featured });
+    await refresh();
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (!confirm("Delete this brand?")) return;
-    deleteStoredBrand(id);
-    refresh();
+    await deleteBrand(id);
+    await refresh();
   };
 
   const filteredBrands = selectedCategory

@@ -15,9 +15,8 @@ import {
   Layers,
 } from "lucide-react";
 import { useProducts } from "@/context/ProductContext";
-import { loadAdminCatalog } from "@/lib/brandStorage";
+import { useCatalog } from "@/context/CatalogContext";
 import { brandOptionKey } from "@/lib/catalogHelpers";
-import type { Brand, Category } from "@/types/database";
 
 const categoryIcons: Record<string, React.ComponentType<{ className?: string }>> = {
   Watches: Watch,
@@ -42,14 +41,7 @@ const categoryIconBySlug: Record<string, React.ComponentType<{ className?: strin
 
 export default function AdminDashboard() {
   const { products } = useProducts();
-  const [catalogCategories, setCatalogCategories] = useState<Category[]>([]);
-  const [catalogBrands, setCatalogBrands] = useState<Brand[]>([]);
-
-  useEffect(() => {
-    const { categories, brands } = loadAdminCatalog();
-    setCatalogCategories(categories);
-    setCatalogBrands(brands);
-  }, []);
+  const { categories: catalogCategories, brands: catalogBrands } = useCatalog();
 
   const categoryCounts = {
     Watches: products.filter((p) => p.category === "Watches").length,

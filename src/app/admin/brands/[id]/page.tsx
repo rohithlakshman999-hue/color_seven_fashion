@@ -3,13 +3,8 @@
 import { useState, useEffect, FormEvent } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { Brand, Category } from "@/types/database";
-import {
-  loadAdminCatalog,
-  getBrandById,
-  updateStoredBrand,
-  deleteStoredBrand,
-} from "@/lib/brandStorage";
+import { Brand } from "@/types/database";
+import { useCatalog } from "@/context/CatalogContext";
 import { useProducts, type Product as StoreProduct } from "@/context/ProductContext";
 import AdminSelect, { AdminSelectOption } from "@/components/AdminSelect";
 import { ArrowLeft, Upload, X, Loader, AlertCircle, CheckCircle, Trash2, Plus, Package, Edit2 } from "lucide-react";
@@ -21,12 +16,19 @@ export default function EditBrandPage() {
   const params = useParams();
   const brandId = params.id as string;
   const { products: storeProducts, deleteProduct } = useProducts();
+  const {
+    categories,
+    brands,
+    loading: catalogLoading,
+    updateBrand,
+    deleteBrand,
+    refresh,
+  } = useCatalog();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [message, setMessage] = useState<{ text: string; type: "success" | "error" }>({ text: "", type: "success" });
-  const [categories, setCategories] = useState<Category[]>([]);
   const [brand, setBrand] = useState<Brand | null>(null);
 
   const [formData, setFormData] = useState({
@@ -50,45 +52,32 @@ export default function EditBrandPage() {
     : [];
 
   useEffect(() => {
-    fetchData();
-  }, [brandId]);
-
-  const fetchData = () => {
-    try {
-      setLoading(true);
-      const { categories: cats } = loadAdminCatalog();
-      setCategories(cats);
-
-      const b = getBrandById(brandId);
-      if (b) {
-        setBrand(b);
-        setFormData({
-          name: b.name,
-          categoryId: b.category_id,
-          description: b.description || "",
-          website: b.website || "",
-          displayOrder: b.display_order?.toString() || "0",
-          featured: b.featured,
-          isActive: b.is_active,
-        });
-        if (b.logo) {
-          setLogoUrl(b.logo);
-          setLogoPreview(b.logo);
-        }
-        if (b.banner) {
-          setBannerUrl(b.banner);
-          setBannerPreview(b.banner);
-        }
-      } else {
-        setMessage({ text: "Brand not found", type: "error" });
+    if (catalogLoading) return;
+    const b = brands.find((x) => x.id === brandId);
+    if (b) {
+      setBrand(b);
+      setFormData({
+        name: b.name,
+        categoryId: b.category_id,
+        description: b.description || "",
+        website: b.website || "",
+        displayOrder: b.display_order?.toString() || "0",
+        featured: b.featured,
+        isActive: b.is_active,
+      });
+      if (b.logo) {
+        setLogoUrl(b.logo);
+        setLogoPreview(b.logo);
       }
-    } catch (error) {
-      console.error("Error fetching data:", error);
-      setMessage({ text: "Failed to load brand data", type: "error" });
-    } finally {
-      setLoading(false);
+      if (b.banner) {
+        setBannerUrl(b.banner);
+        setBannerPreview(b.banner);
+      }
+    } else {
+      setMessage({ text: "Brand not found", type: "error" });
     }
-  };
+    setLoading(false);
+  }, [brandId, brands, catalogLoading]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target as any;
@@ -107,6 +96,10 @@ export default function EditBrandPage() {
     if (type === "logo") setUploadingLogo(true);
     else setUploadingBanner(true);
 
+    if (!supabase) {
+      setMessage({ text: "Image upload requires Supabase configuration", type: "error" });
+      return;
+    }
     try {
       const folder = type === "logo" ? "logos" : "banners";
       const fileName = `${Date.now()}-${file.name.replace(/\s+/g, "-")}`;
@@ -150,7 +143,7 @@ export default function EditBrandPage() {
 
     setSaving(true);
     try {
-      updateStoredBrand(brandId, {
+      await updateBrand(brandId, {
         name: formData.name,
         category_id: formData.categoryId,
         description: formData.description,
@@ -161,6 +154,7 @@ export default function EditBrandPage() {
         featured: formData.featured,
         is_active: formData.isActive,
       });
+      await refresh();
 
       setMessage({ text: "✓ Brand updated successfully!", type: "success" });
       setTimeout(() => router.push("/admin/brands"), 1500);
@@ -176,7 +170,8 @@ export default function EditBrandPage() {
 
     setDeleting(true);
     try {
-      deleteStoredBrand(brandId);
+      await deleteBrand(brandId);
+      await refresh();
       setMessage({ text: "✓ Brand deleted successfully!", type: "success" });
       setTimeout(() => router.push("/admin/brands"), 1500);
     } catch (error) {
