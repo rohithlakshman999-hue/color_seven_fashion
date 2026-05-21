@@ -53,14 +53,18 @@ export default function AddProductPage() {
     try {
       setLoading(true);
       const [catRes, brandRes] = await Promise.all([
-        supabase.from("categories").select("*").order("display_order"),
-        supabase.from("brands").select("*").order("display_order"),
+        supabase.from("categories").select("*").order("name"),
+        supabase.from("brands").select("*").order("name"),
       ]);
 
-      if (catRes.data) setCategories(catRes.data);
-      if (brandRes.data) setBrands(brandRes.data);
+      if (catRes.error) throw catRes.error;
+      if (brandRes.error) throw brandRes.error;
+
+      setCategories(catRes.data || []);
+      setBrands(brandRes.data || []);
     } catch (error) {
       console.error("Error fetching data:", error);
+      setMessage({ text: `Failed to load data: ${error instanceof Error ? error.message : "Unknown error"}`, type: "error" });
     } finally {
       setLoading(false);
     }
@@ -311,13 +315,22 @@ export default function AddProductPage() {
                 name="brandId"
                 value={formData.brandId}
                 onChange={handleInputChange}
-                className="w-full bg-black border border-white/10 rounded-lg px-4 py-3 text-white focus:border-[var(--accent-1)] focus:outline-none transition-colors"
+                disabled={!formData.categoryId}
+                className="w-full bg-black border border-white/10 rounded-lg px-4 py-3 text-white focus:border-[var(--accent-1)] focus:outline-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <option value="">Select Brand</option>
-                {brands.filter(b => b.category_id === formData.categoryId).map(brand => (
-                  <option key={brand.id} value={brand.id}>{brand.name}</option>
-                ))}
+                {formData.categoryId 
+                  ? brands.filter(b => b.category_id === formData.categoryId).map(brand => (
+                      <option key={brand.id} value={brand.id}>{brand.name}</option>
+                    ))
+                  : brands.map(brand => (
+                      <option key={brand.id} value={brand.id}>{brand.name}</option>
+                    ))
+                }
               </select>
+              {!formData.categoryId && (
+                <p className="text-xs text-zinc-500 mt-1">Select a category first to filter brands</p>
+              )}
             </div>
           </div>
 
@@ -587,7 +600,7 @@ export default function AddProductPage() {
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     e.preventDefault();
-                    addTag(colorInput, "colors");
+                    addTag(colorInput, setColorInput, "colors");
                   }
                 }}
                 placeholder="Type color and press Enter (e.g. Black, Gold)"
@@ -595,7 +608,7 @@ export default function AddProductPage() {
               />
               <button
                 type="button"
-                onClick={() => addTag(colorInput, "colors")}
+                onClick={() => addTag(colorInput, setColorInput, "colors")}
                 className="px-4 py-3 bg-[var(--accent-1)] text-black rounded-lg font-bold hover:brightness-110 transition-all"
               >
                 Add
@@ -633,15 +646,15 @@ export default function AddProductPage() {
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     e.preventDefault();
-                    addTag(sizeInput, "sizes");
+                    addTag(sizeInput, setSizeInput, "sizes");
                   }
                 }}
-                placeholder="Type size and press Enter (e.g. S, M, L, XL)"
+                placeholder="Type size and press Enter (e.g. M, L, XL)"
                 className="flex-1 bg-black border border-white/10 rounded-lg px-4 py-3 text-white placeholder-zinc-600 focus:border-[var(--accent-1)] focus:outline-none transition-colors text-sm"
               />
               <button
                 type="button"
-                onClick={() => addTag(sizeInput, "sizes")}
+                onClick={() => addTag(sizeInput, setSizeInput, "sizes")}
                 className="px-4 py-3 bg-[var(--accent-1)] text-black rounded-lg font-bold hover:brightness-110 transition-all"
               >
                 Add
@@ -679,15 +692,15 @@ export default function AddProductPage() {
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     e.preventDefault();
-                    addTag(materialInput, "materials");
+                    addTag(materialInput, setMaterialInput, "materials");
                   }
                 }}
-                placeholder="Type material and press Enter (e.g. Leather, Cotton)"
+                placeholder="Type material and press Enter (e.g. Leather, Steel)"
                 className="flex-1 bg-black border border-white/10 rounded-lg px-4 py-3 text-white placeholder-zinc-600 focus:border-[var(--accent-1)] focus:outline-none transition-colors text-sm"
               />
               <button
                 type="button"
-                onClick={() => addTag(materialInput, "materials")}
+                onClick={() => addTag(materialInput, setMaterialInput, "materials")}
                 className="px-4 py-3 bg-[var(--accent-1)] text-black rounded-lg font-bold hover:brightness-110 transition-all"
               >
                 Add

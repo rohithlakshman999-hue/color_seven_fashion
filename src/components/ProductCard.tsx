@@ -64,17 +64,6 @@ export default function ProductCard({ product }: ProductCardProps) {
           />
         </Link>
 
-        {/* Quick Add Button overlay */}
-        <div className="absolute bottom-0 left-0 w-full p-3 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out z-20">
-          <motion.button 
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.97 }}
-            className="w-full bg-[var(--accent-1)] text-black py-2.5 text-xs font-black uppercase tracking-widest shadow-lg flex items-center justify-center space-x-2 rounded-lg transition-all duration-300 hover:bg-white hover:text-black"
-          >
-            <ShoppingBag className="w-3.5 h-3.5" />
-            <span>ADD TO CART</span>
-          </motion.button>
-        </div>
       </div>
 
       <div className="px-1 flex flex-col flex-grow">

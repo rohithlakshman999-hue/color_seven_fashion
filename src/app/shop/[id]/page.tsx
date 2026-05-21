@@ -155,7 +155,7 @@ export default function ProductDetail({ params }: { params: Promise<{ id: string
               </div>
             )}
 
-            {/* Quantity Selector, Wishlist and Add to Cart Row */}
+            {/* Quantity Selector and Wishlist Row */}
             <div className="flex flex-col sm:flex-row gap-4 mb-12">
               
               {/* Quantity Selector */}
@@ -175,16 +175,10 @@ export default function ProductDetail({ params }: { params: Promise<{ id: string
                 </button>
               </div>
               
-              {/* Add to Cart Button */}
-              <button className="flex-1 bg-[var(--accent-1)] text-black h-12 flex items-center justify-center space-x-2.5 uppercase tracking-widest text-xs font-black rounded-xl hover:bg-white hover:text-black transition-all duration-300 shadow-lg shadow-[rgba(207,242,39,0.1)]">
-                <ShoppingBag className="w-4 h-4" />
-                <span>Add to Cart</span>
-              </button>
-              
               {/* Wishlist Button */}
               <button 
                 onClick={() => setIsWishlisted(!isWishlisted)}
-                className={`w-12 h-12 border flex items-center justify-center rounded-xl transition-all ${
+                className={`flex-1 w-12 h-12 border flex items-center justify-center rounded-xl transition-all ${
                   isWishlisted 
                     ? 'border-[var(--accent-1)] bg-[var(--accent-1)]/10 text-[var(--accent-1)]' 
                     : 'border-white/10 text-zinc-400 hover:text-white hover:border-white/30 bg-[#070707]'
