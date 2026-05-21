@@ -1,124 +1,175 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
 import { Category } from "@/types/database";
-import { Plus, Edit2, Trash2, Eye, EyeOff } from "lucide-react";
+import {
+  loadAdminCatalog,
+  updateStoredCategory,
+  deleteStoredCategory,
+} from "@/lib/brandStorage";
+import { Plus, Edit2, Trash2, Eye, EyeOff, Layers } from "lucide-react";
 import Link from "next/link";
 
 export default function AdminCategories() {
   const [categories, setCategories] = useState<Category[]>([]);
+  const [brandCounts, setBrandCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+
+  const refresh = () => {
+    const { categories: cats, brands } = loadAdminCatalog();
+    setCategories(cats);
+    const counts: Record<string, number> = {};
+    brands.forEach((b) => {
+      counts[b.category_id] = (counts[b.category_id] || 0) + 1;
+    });
+    setBrandCounts(counts);
+    setLoading(false);
+  };
 
   useEffect(() => {
-    fetchCategories();
+    refresh();
   }, []);
 
-  const fetchCategories = async () => {
-    try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from("categories")
-        .select("*")
-        .order("display_order");
-
-      if (error) throw error;
-      setCategories(data || []);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to fetch categories");
-    } finally {
-      setLoading(false);
-    }
+  const toggleActive = (id: string, isActive: boolean) => {
+    updateStoredCategory(id, { is_active: !isActive });
+    refresh();
   };
 
-  const toggleActive = async (id: string, isActive: boolean) => {
-    try {
-      const { error } = await supabase
-        .from("categories")
-        .update({ is_active: !isActive })
-        .eq("id", id);
-
-      if (error) throw error;
-      fetchCategories();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to update category");
-    }
+  const handleDelete = (id: string) => {
+    if (!confirm("Delete this category and its brands?")) return;
+    deleteStoredCategory(id);
+    refresh();
   };
 
-  const deleteCategory = async (id: string) => {
-    if (!confirm("Are you sure?")) return;
-    try {
-      const { error } = await supabase.from("categories").delete().eq("id", id);
-      if (error) throw error;
-      fetchCategories();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to delete category");
-    }
-  };
-
-  if (loading)
+  if (loading) {
     return (
-      <div className="flex items-center justify-center h-96">Loading...</div>
+      <div className="flex items-center justify-center h-96 text-zinc-400">
+        Loading categories...
+      </div>
     );
+  }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Categories Management</h1>
+    <div className="space-y-8">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+        <div>
+          <h1 className="text-3xl md:text-4xl font-black uppercase tracking-tight font-serif text-white">
+            Categories
+          </h1>
+          <p className="text-zinc-400 mt-1">
+            {categories.length} categories · Watches, Shoes, Clothing & more
+          </p>
+        </div>
         <Link
           href="/admin/categories/new"
-          className="flex items-center gap-2 px-4 py-2 bg-[#c9a227] text-black rounded hover:bg-[#d4b239]"
+          className="flex items-center justify-center gap-2 px-5 py-2.5 bg-[#c9a227] text-black font-bold rounded-xl hover:bg-[#d4b239] transition-colors"
         >
           <Plus className="w-5 h-5" />
           Add Category
         </Link>
       </div>
 
-      {error && <div className="p-4 bg-red-500/10 border border-red-500 rounded">{error}</div>}
+      {/* Category cards — always visible */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {categories.map((cat) => (
+          <div
+            key={cat.id}
+            className="bg-[#070707] border border-white/10 rounded-2xl p-5 hover:border-[#c9a227]/40 transition-all"
+          >
+            <div className="flex items-start justify-between mb-3">
+              <Layers className="w-5 h-5 text-[#c9a227]" />
+              <button
+                onClick={() => toggleActive(cat.id, cat.is_active)}
+                title={cat.is_active ? "Active" : "Hidden"}
+              >
+                {cat.is_active ? (
+                  <Eye className="w-5 h-5 text-green-500" />
+                ) : (
+                  <EyeOff className="w-5 h-5 text-zinc-500" />
+                )}
+              </button>
+            </div>
+            <h2 className="text-xl font-black text-white uppercase tracking-wide">
+              {cat.name}
+            </h2>
+            <p className="text-sm font-bold text-[#c9a227] mt-1">
+              {brandCounts[cat.id] || 0} brands
+            </p>
+            <p className="text-sm text-zinc-400 mt-2 line-clamp-2">
+              {cat.description}
+            </p>
+            <p className="text-xs text-zinc-500 mt-2 font-mono">/{cat.slug}</p>
+          </div>
+        ))}
+      </div>
 
-      <div className="overflow-x-auto">
-        <table className="w-full border border-white/10">
+      {/* Full table */}
+      <div className="overflow-x-auto rounded-2xl border border-white/10">
+        <table className="w-full">
           <thead className="bg-zinc-900 border-b border-white/10">
             <tr>
-              <th className="px-6 py-3 text-left">Name</th>
-              <th className="px-6 py-3 text-left">Slug</th>
-              <th className="px-6 py-3 text-left">Description</th>
-              <th className="px-6 py-3 text-center">Status</th>
-              <th className="px-6 py-3 text-center">Actions</th>
+              <th className="px-6 py-4 text-left text-xs font-black uppercase tracking-wider text-[#c9a227]">
+                Name
+              </th>
+              <th className="px-6 py-4 text-left text-xs font-black uppercase tracking-wider text-[#c9a227]">
+                Slug
+              </th>
+              <th className="px-6 py-4 text-left text-xs font-black uppercase tracking-wider text-[#c9a227]">
+                Brands
+              </th>
+              <th className="px-6 py-4 text-left text-xs font-black uppercase tracking-wider text-[#c9a227]">
+                Description
+              </th>
+              <th className="px-6 py-4 text-center text-xs font-black uppercase tracking-wider text-[#c9a227]">
+                Status
+              </th>
+              <th className="px-6 py-4 text-center text-xs font-black uppercase tracking-wider text-[#c9a227]">
+                Actions
+              </th>
             </tr>
           </thead>
           <tbody>
             {categories.map((cat) => (
-              <tr key={cat.id} className="border-b border-white/5 hover:bg-white/2">
-                <td className="px-6 py-4">{cat.name}</td>
-                <td className="px-6 py-4 text-zinc-400">{cat.slug}</td>
-                <td className="px-6 py-4 text-zinc-400 truncate max-w-xs">
+              <tr
+                key={cat.id}
+                className="border-b border-white/5 hover:bg-white/[0.03]"
+              >
+                <td className="px-6 py-4">
+                  <span className="font-bold text-white text-base">
+                    {cat.name}
+                  </span>
+                </td>
+                <td className="px-6 py-4 font-semibold text-zinc-300">
+                  {cat.slug}
+                </td>
+                <td className="px-6 py-4">
+                  <span className="font-bold text-[#c9a227]">
+                    {brandCounts[cat.id] || 0}
+                  </span>
+                </td>
+                <td className="px-6 py-4 text-zinc-300 max-w-xs truncate">
                   {cat.description}
                 </td>
                 <td className="px-6 py-4 text-center">
-                  <button
-                    onClick={() => toggleActive(cat.id, cat.is_active)}
-                    className="inline-flex items-center justify-center"
-                  >
+                  <button onClick={() => toggleActive(cat.id, cat.is_active)}>
                     {cat.is_active ? (
-                      <Eye className="w-5 h-5 text-green-500" />
+                      <Eye className="w-5 h-5 text-green-500 mx-auto" />
                     ) : (
-                      <EyeOff className="w-5 h-5 text-zinc-500" />
+                      <EyeOff className="w-5 h-5 text-zinc-500 mx-auto" />
                     )}
                   </button>
                 </td>
-                <td className="px-6 py-4 text-center">
+                <td className="px-6 py-4">
                   <div className="flex items-center justify-center gap-2">
                     <Link
-                      href={`/admin/categories/${cat.id}`}
-                      className="p-2 hover:bg-white/5 rounded"
+                      href={`/admin/brands?category=${cat.slug}`}
+                      className="p-2 hover:bg-white/5 rounded text-xs font-bold text-[#c9a227]"
                     >
-                      <Edit2 className="w-4 h-4 text-[#c9a227]" />
+                      View Brands
                     </Link>
                     <button
-                      onClick={() => deleteCategory(cat.id)}
-                      className="p-2 hover:bg-white/5 rounded"
+                      onClick={() => handleDelete(cat.id)}
+                      className="p-2 hover:bg-red-500/10 rounded"
                     >
                       <Trash2 className="w-4 h-4 text-red-500" />
                     </button>

@@ -2,12 +2,49 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState, useMemo } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useState, useMemo, memo } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import ProductCard from "@/components/ProductCard";
 import { useProducts } from "@/context/ProductContext";
 import { brandsByCategory } from "@/data/brands";
-import { ArrowLeft, Watch, Search, SlidersHorizontal, Tag, ExternalLink } from "lucide-react";
+import { ArrowLeft, Watch, Search, SlidersHorizontal, Tag } from "lucide-react";
+
+const BrandListButton = memo(function BrandListButton({
+  name,
+  count,
+  isActive,
+  onSelect,
+}: {
+  name: string;
+  count: number;
+  isActive: boolean;
+  onSelect: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      className={`w-full text-left px-3 py-2.5 rounded-lg text-xs transition-colors duration-150 flex items-center justify-between ${
+        isActive
+          ? "bg-[var(--accent-1)] text-black font-black"
+          : "text-white font-bold hover:bg-[#c9a227]/15 hover:text-[#c9a227]"
+      }`}
+    >
+      <span className="truncate">{name}</span>
+      <span
+        className={`text-[9px] px-2 py-0.5 rounded font-black shrink-0 ml-2 ${
+          isActive
+            ? "bg-black/15 text-black"
+            : count > 0
+            ? "bg-[var(--accent-1)] text-black"
+            : "bg-[#c9a227]/25 text-[#c9a227]"
+        }`}
+      >
+        {count}
+      </span>
+    </button>
+  );
+});
 
 export default function WatchesPage() {
   const { products } = useProducts();
@@ -147,36 +184,15 @@ export default function WatchesPage() {
                   </span>
                 </button>
 
-                {filteredBrandsList.map((b) => {
-                  const count = brandProductCounts[b.name] || 0;
-                  const isActive = selectedBrand === b.name;
-                  return (
-                    <button
-                      key={b.name}
-                      onClick={() => setSelectedBrand(b.name)}
-                      className={`w-full text-left px-3 py-2 rounded-lg text-xs font-medium transition-all flex items-center justify-between ${
-                        isActive
-                          ? "bg-[var(--accent-1)] text-black font-bold"
-                          : count > 0
-                          ? "text-white hover:bg-white/5 font-semibold"
-                          : "text-zinc-600 hover:bg-white/5"
-                      }`}
-                    >
-                      <span className="truncate">{b.name}</span>
-                      <span
-                        className={`text-[9px] px-1.5 py-0.5 rounded font-mono ${
-                          isActive
-                            ? "bg-black/10 text-black/60"
-                            : count > 0
-                            ? "bg-[var(--accent-1)]/10 text-[var(--accent-1)]"
-                            : "bg-white/5 text-zinc-700"
-                        }`}
-                      >
-                        {count}
-                      </span>
-                    </button>
-                  );
-                })}
+                {filteredBrandsList.map((b) => (
+                  <BrandListButton
+                    key={`watches-${b.name}`}
+                    name={b.name}
+                    count={brandProductCounts[b.name] || 0}
+                    isActive={selectedBrand === b.name}
+                    onSelect={() => setSelectedBrand(b.name)}
+                  />
+                ))}
               </div>
             </div>
           </div>
@@ -197,15 +213,9 @@ export default function WatchesPage() {
                   <h2 className="text-xl font-black text-white uppercase tracking-widest mb-3">
                     No Watches Available
                   </h2>
-                  <p className="text-zinc-500 text-sm max-w-xs mx-auto mb-8 leading-relaxed">
-                    Our catalog of premium and luxury watches is currently empty. Visit the admin panel to seed or add products.
+                  <p className="text-zinc-400 text-sm max-w-xs mx-auto leading-relaxed font-medium">
+                    No products available at the moment. Please check back soon.
                   </p>
-                  <Link
-                    href="/admin/products/add"
-                    className="inline-flex items-center gap-2 bg-[var(--accent-1)] text-black px-8 py-3.5 rounded-full text-xs font-black uppercase hover:scale-105 transition-transform"
-                  >
-                    Go to Admin Dashboard
-                  </Link>
                 </motion.div>
               ) : selectedBrand !== null ? (
                 /* Case 2: A specific brand is selected */
@@ -234,20 +244,15 @@ export default function WatchesPage() {
                     </div>
                   ) : (
                     <div className="bg-[#030303] border border-white/5 rounded-2xl p-12 text-center max-w-md mx-auto mt-6">
-                      <Watch className="w-10 h-10 text-zinc-700 mx-auto mb-4" />
-                      <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-2">
-                        No Timepieces Listed
+                      <Watch className="w-10 h-10 text-zinc-600 mx-auto mb-4" />
+                      <h3 className="text-base font-black text-white uppercase tracking-wider mb-2">
+                        No Products Available
                       </h3>
-                      <p className="text-zinc-500 text-xs mb-6">
-                        We don't have any products listed under <strong className="text-white">{selectedBrand}</strong> at the moment.
+                      <p className="text-zinc-400 text-sm font-medium">
+                        We don&apos;t have any products listed under{" "}
+                        <span className="text-[#c9a227] font-bold">{selectedBrand}</span> at
+                        the moment.
                       </p>
-                      <Link
-                        href="/admin/products/add"
-                        className="inline-flex items-center gap-1.5 bg-[var(--accent-1)] text-black px-5 py-2.5 rounded-full text-[10px] font-black uppercase hover:scale-105 transition-transform"
-                      >
-                        Add {selectedBrand} Product
-                        <ExternalLink className="w-3 h-3" />
-                      </Link>
                     </div>
                   )}
                 </motion.div>

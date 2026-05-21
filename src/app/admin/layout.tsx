@@ -5,7 +5,6 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { Menu, X, LayoutDashboard, Package, PlusCircle, Store, Tag, Layers } from "lucide-react";
 import { useState } from "react";
-import { ProductProvider } from "@/context/ProductContext";
 
 const navItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
@@ -29,8 +28,7 @@ export default function AdminLayout({
   };
 
   return (
-    <ProductProvider>
-      <div className="flex h-screen bg-black text-white overflow-hidden">
+    <div className="flex h-screen bg-black text-white overflow-hidden">
         {/* Mobile overlay */}
         {sidebarOpen && (
           <div
@@ -126,6 +124,5 @@ export default function AdminLayout({
           </main>
         </div>
       </div>
-    </ProductProvider>
   );
 }

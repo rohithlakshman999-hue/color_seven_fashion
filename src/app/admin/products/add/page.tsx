@@ -4,12 +4,17 @@ import { useState, useEffect, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { Category, Brand } from "@/types/database";
+import { loadAdminCatalog } from "@/lib/brandStorage";
+import { useProducts } from "@/context/ProductContext";
+import { slugToProductCategory, brandOptionKey } from "@/lib/catalogHelpers";
+import AdminSelect, { AdminSelectOption } from "@/components/AdminSelect";
 import { ArrowLeft, Upload, X, Loader, AlertCircle, CheckCircle } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 
 export default function AddProductPage() {
   const router = useRouter();
+  const { addProduct } = useProducts();
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState({ text: "", type: "" as "success" | "error" });
@@ -46,37 +51,29 @@ export default function AddProductPage() {
   const [imagePreviews, setImagePreviews] = useState<string[]>(["", "", "", "", ""]);
 
   useEffect(() => {
-    fetchData();
+    const { categories: cats, brands: brs } = loadAdminCatalog();
+    setCategories(cats);
+    setBrands(brs);
+    setLoading(false);
   }, []);
-
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      const [catRes, brandRes] = await Promise.all([
-        supabase.from("categories").select("*").order("name"),
-        supabase.from("brands").select("*").order("name"),
-      ]);
-
-      if (catRes.error) throw catRes.error;
-      if (brandRes.error) throw brandRes.error;
-
-      setCategories(catRes.data || []);
-      setBrands(brandRes.data || []);
-    } catch (error) {
-      console.error("Error fetching data:", error);
-      setMessage({ text: `Failed to load data: ${error instanceof Error ? error.message : "Unknown error"}`, type: "error" });
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target as HTMLInputElement;
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === "checkbox" ? (e.target as HTMLInputElement).checked : value,
-    }));
+    setFormData(prev => {
+      const next = {
+        ...prev,
+        [name]: type === "checkbox" ? (e.target as HTMLInputElement).checked : value,
+      };
+      if (name === "categoryId") {
+        next.brandId = "";
+      }
+      return next;
+    });
   };
+
+  const brandsForCategory = formData.categoryId
+    ? brands.filter((b) => b.category_id === formData.categoryId)
+    : brands;
 
   const handleImageUrlChange = (index: number, url: string) => {
     const newUrls = [...imageUrls];
@@ -146,10 +143,6 @@ export default function AddProductPage() {
     }));
   };
 
-  const generateSlug = (name: string) => {
-    return name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
-  };
-
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     
@@ -158,62 +151,38 @@ export default function AddProductPage() {
       return;
     }
 
+    const selectedCategory = categories.find((c) => c.id === formData.categoryId);
+    const selectedBrand = brands.find((b) => b.id === formData.brandId);
+    if (!selectedCategory || !selectedBrand) {
+      setMessage({ text: "Please select a valid category and brand", type: "error" });
+      return;
+    }
+
     setSaving(true);
     try {
-      const productData = {
-        category_id: formData.categoryId,
-        brand_id: formData.brandId,
-        name: formData.name,
-        slug: generateSlug(formData.name),
-        short_description: formData.shortDescription,
-        full_description: formData.fullDescription,
-        sku: formData.sku || `SKU-${Date.now()}`,
-        tags: formData.colors.concat(formData.sizes).concat(formData.materials),
-        original_price: parseFloat(formData.originalPrice) || 0,
-        discount_price: parseFloat(formData.discountPrice) || 0,
-        offer_percentage: parseInt(formData.offerPercentage) || 0,
-        collection: formData.collectionType,
-        featured: formData.featured,
-        is_active: formData.isActive,
-      };
+      const validImages = imageUrls.filter((url) => url.trim() !== "");
+      const price =
+        parseFloat(formData.discountPrice) ||
+        parseFloat(formData.originalPrice) ||
+        0;
 
-      const { data: product, error: productError } = await supabase
-        .from("products")
-        .insert([productData])
-        .select()
-        .single();
-
-      if (productError) throw productError;
-
-      // Add images
-      const validImages = imageUrls.filter(url => url.trim() !== "");
-      if (validImages.length > 0) {
-        for (let i = 0; i < validImages.length; i++) {
-          await supabase.from("product_images").insert([
-            {
-              product_id: product.id,
-              image_url: validImages[i],
-              display_order: i,
-              is_main: i === 0,
-            },
-          ]);
-        }
-      }
-
-      // Add variant if we have stock or variants
-      if (formData.stockQuantity || formData.colors.length > 0 || formData.sizes.length > 0) {
-        await supabase.from("product_variants").insert([
-          {
-            product_id: product.id,
-            size: formData.sizes[0] || null,
-            color: formData.colors[0] || null,
-            material: formData.materials[0] || null,
-            sku: formData.sku || `SKU-${Date.now()}`,
-            stock_quantity: parseInt(formData.stockQuantity) || 0,
-            stock_status: formData.stockStatus,
-          },
-        ]);
-      }
+      addProduct({
+        name: formData.name.trim(),
+        brand: selectedBrand.name,
+        price,
+        category: slugToProductCategory(selectedCategory.slug),
+        images:
+          validImages.length > 0
+            ? validImages
+            : ["/images/chrono_watch.png"],
+        description:
+          formData.fullDescription.trim() ||
+          formData.shortDescription.trim() ||
+          `${formData.name} — ${selectedBrand.name}`,
+        sizes: formData.sizes.length > 0 ? formData.sizes : ["One Size"],
+        colors: formData.colors.length > 0 ? formData.colors : ["Default"],
+        isNew: formData.featured,
+      });
 
       setMessage({ text: "✓ Product added successfully!", type: "success" });
       setTimeout(() => router.push("/admin/products"), 1500);
@@ -295,41 +264,52 @@ export default function AddProductPage() {
               <label className="text-xs uppercase tracking-wider text-zinc-500 font-medium">
                 Category *
               </label>
-              <select
+              <AdminSelect
                 name="categoryId"
                 value={formData.categoryId}
                 onChange={handleInputChange}
-                className="w-full bg-black border border-white/10 rounded-lg px-4 py-3 text-white focus:border-[var(--accent-1)] focus:outline-none transition-colors"
+                required
+                placeholder={`Select Category (${categories.length} available)`}
               >
-                <option value="">Select Category</option>
-                {categories.map(cat => (
-                  <option key={cat.id} value={cat.id}>{cat.name}</option>
+                {categories.map((cat) => (
+                  <AdminSelectOption
+                    optionKey={`cat-${cat.id}`}
+                    value={cat.id}
+                  >
+                    {cat.name}
+                  </AdminSelectOption>
                 ))}
-              </select>
+              </AdminSelect>
             </div>
             <div className="space-y-2">
               <label className="text-xs uppercase tracking-wider text-zinc-500 font-medium">
                 Brand *
               </label>
-              <select
+              <AdminSelect
                 name="brandId"
                 value={formData.brandId}
                 onChange={handleInputChange}
                 disabled={!formData.categoryId}
-                className="w-full bg-black border border-white/10 rounded-lg px-4 py-3 text-white focus:border-[var(--accent-1)] focus:outline-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <option value="">Select Brand</option>
-                {formData.categoryId 
-                  ? brands.filter(b => b.category_id === formData.categoryId).map(brand => (
-                      <option key={brand.id} value={brand.id}>{brand.name}</option>
-                    ))
-                  : brands.map(brand => (
-                      <option key={brand.id} value={brand.id}>{brand.name}</option>
-                    ))
+                required
+                placeholder={
+                  formData.categoryId
+                    ? `Select Brand (${brandsForCategory.length} available)`
+                    : "Select a category first"
                 }
-              </select>
+              >
+                {brandsForCategory.map((brand) => (
+                  <AdminSelectOption
+                    optionKey={brandOptionKey(brand)}
+                    value={brand.id}
+                  >
+                    {brand.name}
+                  </AdminSelectOption>
+                ))}
+              </AdminSelect>
               {!formData.categoryId && (
-                <p className="text-xs text-zinc-500 mt-1">Select a category first to filter brands</p>
+                <p className="text-xs font-bold text-[#c9a227] mt-1">
+                  Select a category first to see brands (Watches, Shoes, etc.)
+                </p>
               )}
             </div>
           </div>
@@ -474,16 +454,21 @@ export default function AddProductPage() {
               <label className="text-xs uppercase tracking-wider text-zinc-500 font-medium">
                 Stock Status
               </label>
-              <select
+              <AdminSelect
                 name="stockStatus"
                 value={formData.stockStatus}
                 onChange={handleInputChange}
-                className="w-full bg-black border border-white/10 rounded-lg px-4 py-3 text-white focus:border-[var(--accent-1)] focus:outline-none transition-colors"
               >
-                <option value="in_stock">In Stock</option>
-                <option value="low_stock">Low Stock</option>
-                <option value="out_of_stock">Out of Stock</option>
-              </select>
+                <AdminSelectOption optionKey="stock-in" value="in_stock">
+                  In Stock
+                </AdminSelectOption>
+                <AdminSelectOption optionKey="stock-low" value="low_stock">
+                  Low Stock
+                </AdminSelectOption>
+                <AdminSelectOption optionKey="stock-out" value="out_of_stock">
+                  Out of Stock
+                </AdminSelectOption>
+              </AdminSelect>
             </div>
           </div>
         </div>

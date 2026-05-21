@@ -3,7 +3,15 @@
 import { useState, useEffect, FormEvent } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { Brand, Category, Product } from "@/types/database";
+import { Brand, Category } from "@/types/database";
+import {
+  loadAdminCatalog,
+  getBrandById,
+  updateStoredBrand,
+  deleteStoredBrand,
+} from "@/lib/brandStorage";
+import { useProducts, type Product as StoreProduct } from "@/context/ProductContext";
+import AdminSelect, { AdminSelectOption } from "@/components/AdminSelect";
 import { ArrowLeft, Upload, X, Loader, AlertCircle, CheckCircle, Trash2, Plus, Package, Edit2 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -12,6 +20,7 @@ export default function EditBrandPage() {
   const router = useRouter();
   const params = useParams();
   const brandId = params.id as string;
+  const { products: storeProducts, deleteProduct } = useProducts();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -36,26 +45,22 @@ export default function EditBrandPage() {
   const [bannerUrl, setBannerUrl] = useState("");
   const [logoPreview, setLogoPreview] = useState("");
   const [bannerPreview, setBannerPreview] = useState("");
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loadingProducts, setLoadingProducts] = useState(false);
+  const brandProducts: StoreProduct[] = brand
+    ? storeProducts.filter((p) => p.brand === brand.name)
+    : [];
 
   useEffect(() => {
     fetchData();
   }, [brandId]);
 
-  const fetchData = async () => {
+  const fetchData = () => {
     try {
       setLoading(true);
-      const [catRes, brandRes, productsRes] = await Promise.all([
-        supabase.from("categories").select("*").order("display_order"),
-        supabase.from("brands").select("*").eq("id", brandId).single(),
-        supabase.from("products").select("*").eq("brand_id", brandId).order("created_at", { ascending: false }),
-      ]);
+      const { categories: cats } = loadAdminCatalog();
+      setCategories(cats);
 
-      if (catRes.data) setCategories(catRes.data);
-
-      if (brandRes.data) {
-        const b = brandRes.data;
+      const b = getBrandById(brandId);
+      if (b) {
         setBrand(b);
         setFormData({
           name: b.name,
@@ -74,10 +79,8 @@ export default function EditBrandPage() {
           setBannerUrl(b.banner);
           setBannerPreview(b.banner);
         }
-      }
-
-      if (productsRes.data) {
-        setProducts(productsRes.data);
+      } else {
+        setMessage({ text: "Brand not found", type: "error" });
       }
     } catch (error) {
       console.error("Error fetching data:", error);
@@ -147,25 +150,17 @@ export default function EditBrandPage() {
 
     setSaving(true);
     try {
-      const slug = formData.name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
-
-      const { error } = await supabase
-        .from("brands")
-        .update({
-          name: formData.name,
-          category_id: formData.categoryId,
-          description: formData.description,
-          website: formData.website,
-          logo: logoUrl,
-          banner: bannerUrl,
-          display_order: parseInt(formData.displayOrder),
-          featured: formData.featured,
-          is_active: formData.isActive,
-          slug: slug,
-        })
-        .eq("id", brandId);
-
-      if (error) throw error;
+      updateStoredBrand(brandId, {
+        name: formData.name,
+        category_id: formData.categoryId,
+        description: formData.description,
+        website: formData.website,
+        logo: logoUrl,
+        banner: bannerUrl,
+        display_order: parseInt(formData.displayOrder),
+        featured: formData.featured,
+        is_active: formData.isActive,
+      });
 
       setMessage({ text: "✓ Brand updated successfully!", type: "success" });
       setTimeout(() => router.push("/admin/brands"), 1500);
@@ -181,13 +176,7 @@ export default function EditBrandPage() {
 
     setDeleting(true);
     try {
-      const { error } = await supabase
-        .from("brands")
-        .delete()
-        .eq("id", brandId);
-
-      if (error) throw error;
-
+      deleteStoredBrand(brandId);
       setMessage({ text: "✓ Brand deleted successfully!", type: "success" });
       setTimeout(() => router.push("/admin/brands"), 1500);
     } catch (error) {
@@ -261,19 +250,19 @@ export default function EditBrandPage() {
             </div>
             <div className="space-y-2">
               <label className="text-xs uppercase tracking-wider text-zinc-500 font-medium">Category *</label>
-              <select
+              <AdminSelect
                 name="categoryId"
                 value={formData.categoryId}
                 onChange={handleInputChange}
-                className="w-full bg-black border border-white/10 rounded-lg px-4 py-3 text-white focus:border-[var(--accent-1)] focus:outline-none transition-colors"
+                required
+                placeholder="Select Category"
               >
-                <option value="">Select Category</option>
                 {categories.map((cat) => (
-                  <option key={cat.id} value={cat.id}>
+                  <AdminSelectOption optionKey={`cat-${cat.id}`} value={cat.id}>
                     {cat.name}
-                  </option>
+                  </AdminSelectOption>
                 ))}
-              </select>
+              </AdminSelect>
             </div>
           </div>
 
@@ -484,10 +473,10 @@ export default function EditBrandPage() {
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <h2 className="text-2xl font-black uppercase tracking-tight font-serif">
-            Products ({products.length})
+            Products ({brandProducts.length})
           </h2>
           <Link
-            href={`/admin/products/new?brandId=${brandId}`}
+            href="/admin/products/add"
             className="flex items-center gap-2 px-4 py-2 bg-[var(--accent-1)] text-black rounded hover:brightness-110 transition-all"
           >
             <Plus className="w-5 h-5" />
@@ -495,22 +484,22 @@ export default function EditBrandPage() {
           </Link>
         </div>
 
-        {products.length === 0 ? (
+        {brandProducts.length === 0 ? (
           <div className="p-12 bg-zinc-900/50 border border-white/5 rounded-2xl text-center">
             <Package className="w-16 h-16 text-zinc-700 mx-auto mb-4" />
             <h3 className="text-xl font-bold text-white mb-2">No Products Yet</h3>
-            <p className="text-zinc-500 mb-6">Start by adding your first product to this brand</p>
+            <p className="text-zinc-500 mb-6">Add a product and select this brand in the form</p>
             <Link
-              href={`/admin/products/new?brandId=${brandId}`}
+              href="/admin/products/add"
               className="inline-flex items-center gap-2 px-6 py-3 bg-[var(--accent-1)] text-black rounded font-bold hover:brightness-110 transition-all"
             >
               <Plus className="w-5 h-5" />
-              Add First Product
+              Add Product
             </Link>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {products.map((product) => (
+            {brandProducts.map((product) => (
               <div
                 key={product.id}
                 className="p-4 bg-zinc-900/50 border border-white/5 rounded-lg hover:border-[var(--accent-1)]/40 transition-all"
@@ -518,25 +507,20 @@ export default function EditBrandPage() {
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1">
                     <h3 className="font-bold text-white mb-1 line-clamp-1">{product.name}</h3>
-                    <p className="text-xs text-zinc-500">{product.sku}</p>
+                    <p className="text-xs text-zinc-500">{product.category}</p>
                   </div>
                   <div className="flex gap-1">
                     <Link
-                      href={`/admin/products/${product.id}`}
+                      href={`/admin/products/edit/${product.id}`}
                       className="p-2 rounded hover:bg-white/10 text-zinc-400 hover:text-white transition-all"
                     >
                       <Edit2 className="w-4 h-4" />
                     </Link>
                     <button
-                      onClick={async () => {
-                        if (!confirm("Delete this product?")) return;
-                        try {
-                          const { error } = await supabase.from("products").delete().eq("id", product.id);
-                          if (error) throw error;
-                          fetchData();
-                        } catch (error) {
-                          setMessage({ text: "Failed to delete product", type: "error" });
-                        }
+                      onClick={() => {
+                        if (!confirm("Delete this product? It will be removed from the store.")) return;
+                        deleteProduct(product.id);
+                        setMessage({ text: "Product deleted from store", type: "success" });
                       }}
                       className="p-2 rounded hover:bg-red-500/10 text-zinc-400 hover:text-red-400 transition-all"
                     >
@@ -544,21 +528,17 @@ export default function EditBrandPage() {
                     </button>
                   </div>
                 </div>
-                <p className="text-sm text-zinc-400 line-clamp-2 mb-3">{product.short_description}</p>
+                <p className="text-sm text-zinc-400 line-clamp-2 mb-3">{product.description}</p>
                 <div className="flex items-center gap-2">
-                  <span className="text-lg font-bold text-[var(--accent-1)]">${product.discount_price}</span>
-                  {product.original_price !== product.discount_price && (
-                    <span className="text-sm text-zinc-500 line-through">${product.original_price}</span>
-                  )}
-                </div>
-                <div className="mt-2 flex items-center gap-2">
-                  <span className={`text-xs px-2 py-1 rounded ${product.is_active ? "bg-green-500/10 text-green-400" : "bg-red-500/10 text-red-400"}`}>
-                    {product.is_active ? "Active" : "Inactive"}
+                  <span className="text-lg font-bold text-[var(--accent-1)]">
+                    ₹{product.price.toLocaleString("en-IN")}
                   </span>
-                  {product.featured && (
-                    <span className="text-xs px-2 py-1 bg-yellow-500/10 text-yellow-400 rounded">Featured</span>
-                  )}
                 </div>
+                {product.isNew && (
+                  <span className="mt-2 inline-block text-xs px-2 py-1 bg-yellow-500/10 text-yellow-400 rounded">
+                    New
+                  </span>
+                )}
               </div>
             ))}
           </div>

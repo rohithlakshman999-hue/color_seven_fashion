@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
@@ -10,8 +11,13 @@ import {
   Gem,
   PlusCircle,
   ExternalLink,
+  Tag,
+  Layers,
 } from "lucide-react";
 import { useProducts } from "@/context/ProductContext";
+import { loadAdminCatalog } from "@/lib/brandStorage";
+import { brandOptionKey } from "@/lib/catalogHelpers";
+import type { Brand, Category } from "@/types/database";
 
 const categoryIcons: Record<string, React.ComponentType<{ className?: string }>> = {
   Watches: Watch,
@@ -26,8 +32,24 @@ const currency = new Intl.NumberFormat("en-IN", {
   maximumFractionDigits: 0,
 });
 
+const categoryIconBySlug: Record<string, React.ComponentType<{ className?: string }>> = {
+  watches: Watch,
+  shoes: Footprints,
+  clothing: Shirt,
+  clothes: Shirt,
+  accessories: Gem,
+};
+
 export default function AdminDashboard() {
   const { products } = useProducts();
+  const [catalogCategories, setCatalogCategories] = useState<Category[]>([]);
+  const [catalogBrands, setCatalogBrands] = useState<Brand[]>([]);
+
+  useEffect(() => {
+    const { categories, brands } = loadAdminCatalog();
+    setCatalogCategories(categories);
+    setCatalogBrands(brands);
+  }, []);
 
   const categoryCounts = {
     Watches: products.filter((p) => p.category === "Watches").length,
@@ -95,6 +117,83 @@ export default function AdminDashboard() {
               </motion.div>
             );
           }
+        )}
+      </div>
+
+      {/* Catalog: Categories & Brands */}
+      <div className="space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <h2 className="text-lg font-black text-white uppercase tracking-wide">
+            Categories & Brands
+          </h2>
+          <div className="flex gap-3">
+            <Link
+              href="/admin/categories"
+              className="text-xs font-bold text-[#c9a227] hover:underline uppercase tracking-wider"
+            >
+              Manage Categories →
+            </Link>
+            <Link
+              href="/admin/brands"
+              className="text-xs font-bold text-[#c9a227] hover:underline uppercase tracking-wider"
+            >
+              Manage Brands →
+            </Link>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
+          {catalogCategories.map((cat) => {
+            const Icon = categoryIconBySlug[cat.slug] || Layers;
+            const brandCount = catalogBrands.filter(
+              (b) => b.category_id === cat.id
+            ).length;
+            return (
+              <Link
+                key={cat.id}
+                href={`/admin/brands?category=${cat.slug}`}
+                className="bg-[#070707] border border-white/10 rounded-xl p-4 hover:border-[#c9a227]/40 transition-all group"
+              >
+                <Icon className="w-4 h-4 text-[#c9a227] mb-2" />
+                <p className="font-black text-white text-sm uppercase leading-tight group-hover:text-[#c9a227] transition-colors">
+                  {cat.name}
+                </p>
+                <p className="text-xs font-bold text-[#c9a227] mt-1">
+                  {brandCount} brands
+                </p>
+              </Link>
+            );
+          })}
+        </div>
+
+        {catalogBrands.length > 0 && (
+          <div className="bg-[#070707] border border-white/5 rounded-2xl p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <Tag className="w-4 h-4 text-[#c9a227]" />
+              <h3 className="font-black text-white uppercase text-sm tracking-wider">
+                Featured Brands
+              </h3>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {catalogBrands
+                .filter((b) => b.featured)
+                .slice(0, 24)
+                .map((b) => (
+                  <span
+                    key={brandOptionKey(b)}
+                    className="px-3 py-1.5 rounded-lg bg-[#c9a227]/15 border border-[#c9a227]/30 text-sm font-bold text-white"
+                  >
+                    {b.name}
+                  </span>
+                ))}
+              {catalogBrands.filter((b) => b.featured).length === 0 && (
+                <p className="text-zinc-400 text-sm">
+                  No featured brands yet. Mark brands as featured in Brands
+                  management.
+                </p>
+              )}
+            </div>
+          </div>
         )}
       </div>
 

@@ -4,6 +4,8 @@ import { useState, useEffect, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { Category } from "@/types/database";
+import { loadAdminCatalog, addStoredBrand } from "@/lib/brandStorage";
+import AdminSelect, { AdminSelectOption } from "@/components/AdminSelect";
 import { ArrowLeft, Upload, X, Loader, AlertCircle, CheckCircle } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -33,31 +35,14 @@ export default function AddBrandPage() {
   const [bannerPreview, setBannerPreview] = useState("");
 
   useEffect(() => {
-    fetchCategories();
-  }, []);
-
-  const fetchCategories = async () => {
-    try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from("categories")
-        .select("*")
-        .eq("is_active", true)
-        .order("display_order");
-
-      if (error) throw error;
-      if (data) {
-        setCategories(data);
-        if (data.length > 0) {
-          setFormData(prev => ({ ...prev, categoryId: data[0].id }));
-        }
-      }
-    } catch (error) {
-      setMessage({ text: "Failed to load categories", type: "error" });
-    } finally {
-      setLoading(false);
+    const { categories: cats } = loadAdminCatalog();
+    const active = cats.filter((c) => c.is_active);
+    setCategories(active);
+    if (active.length > 0) {
+      setFormData((prev) => ({ ...prev, categoryId: active[0].id }));
     }
-  };
+    setLoading(false);
+  }, []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target as any;
@@ -141,24 +126,21 @@ export default function AddBrandPage() {
 
     setSaving(true);
     try {
-      const brandData = {
+      const category = categories.find((c) => c.id === formData.categoryId);
+      if (!category) throw new Error("Invalid category");
+
+      addStoredBrand({
         category_id: formData.categoryId,
         name: formData.name.trim(),
         slug: generateSlug(formData.name),
         description: formData.description.trim(),
-        logo: formData.logoUrl || null,
-        banner: formData.bannerUrl || null,
-        website: formData.website.trim() || null,
+        logo: formData.logoUrl || "",
+        banner: formData.bannerUrl || "",
+        website: formData.website.trim() || undefined,
         display_order: parseInt(formData.displayOrder) || 0,
         featured: formData.featured,
         is_active: formData.isActive,
-      };
-
-      const { error } = await supabase
-        .from("brands")
-        .insert([brandData]);
-
-      if (error) throw error;
+      });
 
       setMessage({ text: "✓ Brand added successfully!", type: "success" });
       setTimeout(() => router.push("/admin/brands"), 1500);
@@ -239,17 +221,19 @@ export default function AddBrandPage() {
             <label className="text-xs uppercase tracking-wider text-zinc-500 font-medium">
               Category *
             </label>
-            <select
+            <AdminSelect
               name="categoryId"
               value={formData.categoryId}
               onChange={handleInputChange}
-              className="w-full bg-black border border-white/10 rounded-lg px-4 py-3 text-white focus:border-[var(--accent-1)] focus:outline-none transition-colors"
+              required
+              placeholder={`Select Category (${categories.length} available)`}
             >
-              <option value="">Select Category</option>
-              {categories.map(cat => (
-                <option key={cat.id} value={cat.id}>{cat.name}</option>
+              {categories.map((cat) => (
+                <AdminSelectOption optionKey={`cat-${cat.id}`} value={cat.id}>
+                  {cat.name}
+                </AdminSelectOption>
               ))}
-            </select>
+            </AdminSelect>
           </div>
 
           <div className="space-y-2">

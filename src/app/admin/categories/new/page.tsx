@@ -3,6 +3,8 @@
 import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { addStoredCategory } from "@/lib/brandStorage";
+import AdminSelect, { AdminSelectOption } from "@/components/AdminSelect";
 import { ArrowLeft, Upload, Loader, AlertCircle, CheckCircle } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -76,21 +78,15 @@ export default function AddCategoryPage() {
 
     setLoading(true);
     try {
-      const categoryData = {
+      addStoredCategory({
         name: formData.name.trim(),
         slug: generateSlug(formData.name),
         description: formData.description.trim(),
         image: formData.imageUrl,
-        icon: formData.icon || null,
+        icon: formData.icon || "",
         display_order: parseInt(formData.displayOrder) || 0,
         is_active: formData.isActive,
-      };
-
-      const { error } = await supabase
-        .from("categories")
-        .insert([categoryData]);
-
-      if (error) throw error;
+      });
 
       setMessage({ text: "✓ Category added successfully!", type: "success" });
       setTimeout(() => router.push("/admin/categories"), 1500);

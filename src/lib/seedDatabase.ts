@@ -3,6 +3,7 @@
 
 import { supabase } from "@/lib/supabase";
 import { allBrands, categories } from "@/data/brands";
+import { buildBrandId, slugifyName } from "@/lib/brandStorage";
 
 export async function seedCategories() {
   try {
@@ -56,13 +57,13 @@ export async function seedBrands() {
         continue;
       }
 
-      const slug = brand.name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+      const slug = buildBrandId(brand.category, brand.name);
 
       const { error } = await supabase.from("brands").insert([
         {
           category_id: categoryId,
           name: brand.name,
-          slug: slug,
+          slug: slugifyName(brand.name),
           description: brand.description,
           display_order: 0,
           is_active: true,

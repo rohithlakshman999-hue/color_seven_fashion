@@ -1,15 +1,19 @@
 "use client";
 
-import { useState, useEffect, KeyboardEvent, FormEvent, use } from "react";
+import { useState, useEffect, useRef, KeyboardEvent, FormEvent, use } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { ArrowLeft, X, Save, AlertCircle } from "lucide-react";
 import Link from "next/link";
 import { useProducts } from "@/context/ProductContext";
 import { Plus } from "lucide-react";
-import { brandsByCategory } from "@/data/brands";
-
-const categoryOptions = ["Watches", "Shoes", "Clothes", "Accessories"] as const;
+import { loadAdminCatalog } from "@/lib/brandStorage";
+import {
+  PRODUCT_CATEGORIES,
+  getBrandsForProductCategory,
+  brandOptionKey,
+} from "@/lib/catalogHelpers";
+import AdminSelect, { AdminSelectOption } from "@/components/AdminSelect";
 
 export default function EditProductPage({
   params,
@@ -36,6 +40,7 @@ export default function EditProductPage({
   const [sizes, setSizes] = useState<string[]>([]);
   const [sizeInput, setSizeInput] = useState("");
   const [isNew, setIsNew] = useState(false);
+  const initialLoadDone = useRef(false);
 
   useEffect(() => {
     const product = getProductById(id);
@@ -47,10 +52,12 @@ export default function EditProductPage({
 
     setName(product.name);
     setBrand(product.brand);
-    
-    const categoryKey = product.category === "Clothes" ? "clothing" : product.category.toLowerCase();
-    const availableBrands = brandsByCategory[categoryKey as keyof typeof brandsByCategory] || [];
-    const isPredefined = availableBrands.some((b) => b.name === product.brand);
+
+    const available = getBrandsForProductCategory(
+      product.category,
+      loadAdminCatalog().brands
+    );
+    const isPredefined = available.some((b) => b.name === product.brand);
     if (!isPredefined && product.brand) {
       setIsCustomBrand(true);
       setCustomBrand(product.brand);
@@ -67,17 +74,13 @@ export default function EditProductPage({
     setSizes([...product.sizes]);
     setIsNew(product.isNew);
     setLoaded(true);
+    initialLoadDone.current = true;
   }, [id, getProductById]);
 
-  // Update brand list based on category changes (after initial product load)
-  useEffect(() => {
-    if (!loaded) return;
-    const categoryKey = category === "Clothes" ? "clothing" : category.toLowerCase();
-    const availableBrands = brandsByCategory[categoryKey as keyof typeof brandsByCategory] || [];
-    if (availableBrands.length > 0 && !isCustomBrand) {
-      setBrand(availableBrands[0].name);
-    }
-  }, [category, loaded]);
+  const brandsForCategory = getBrandsForProductCategory(
+    category,
+    loadAdminCatalog().brands
+  );
 
   const addImageField = () => {
     if (images.length < 5) {
@@ -220,7 +223,7 @@ export default function EditProductPage({
               Brand
             </label>
             <div className="space-y-2">
-              <select
+              <AdminSelect
                 value={isCustomBrand ? "Custom" : brand}
                 onChange={(e) => {
                   if (e.target.value === "Custom") {
@@ -230,23 +233,19 @@ export default function EditProductPage({
                     setBrand(e.target.value);
                   }
                 }}
-                className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-white focus:border-[var(--accent-1)] focus:outline-none transition-colors"
               >
-                {(() => {
-                  const categoryKey = category === "Clothes" ? "clothing" : category.toLowerCase();
-                  const availableBrands = brandsByCategory[categoryKey as keyof typeof brandsByCategory] || [];
-                  return (
-                    <>
-                      {availableBrands.map((b) => (
-                        <option key={b.name} value={b.name}>
-                          {b.name}
-                        </option>
-                      ))}
-                      <option value="Custom">Custom / Other Brand...</option>
-                    </>
-                  );
-                })()}
-              </select>
+                {brandsForCategory.map((b) => (
+                  <AdminSelectOption
+                    optionKey={brandOptionKey(b)}
+                    value={b.name}
+                  >
+                    {b.name}
+                  </AdminSelectOption>
+                ))}
+                <AdminSelectOption optionKey="brand-custom" value="Custom">
+                  Custom / Other Brand...
+                </AdminSelectOption>
+              </AdminSelect>
 
               {isCustomBrand && (
                 <input
@@ -282,17 +281,26 @@ export default function EditProductPage({
           <label className="text-xs uppercase tracking-wider text-zinc-500 font-medium">
             Category *
           </label>
-          <select
+          <AdminSelect
             value={category}
-            onChange={(e) => setCategory(e.target.value as typeof category)}
-            className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-white focus:border-[var(--accent-1)] focus:outline-none transition-colors"
+            onChange={(e) => {
+              const next = e.target.value as typeof category;
+              setCategory(next);
+              if (initialLoadDone.current && !isCustomBrand) {
+                const list = getBrandsForProductCategory(
+                  next,
+                  loadAdminCatalog().brands
+                );
+                if (list.length > 0) setBrand(list[0].name);
+              }
+            }}
           >
-            {categoryOptions.map((cat) => (
-              <option key={cat} value={cat}>
+            {PRODUCT_CATEGORIES.map((cat) => (
+              <AdminSelectOption optionKey={`cat-${cat}`} value={cat}>
                 {cat}
-              </option>
+              </AdminSelectOption>
             ))}
-          </select>
+          </AdminSelect>
         </div>
 
         {/* Description */}

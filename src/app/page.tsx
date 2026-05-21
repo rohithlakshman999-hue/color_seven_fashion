@@ -65,8 +65,8 @@ export default function Home() {
                 alt="MS Dhoni Banner"
                 fill
                 className="object-cover object-top opacity-50 grayscale hover:grayscale-0 hover:opacity-75 transition-all duration-700"
-                priority
-                sizes="(max-width: 640px) 28vw, (max-width: 768px) 25vw, (max-width: 1024px) 22vw, 25vw"
+                loading="lazy"
+                sizes="(max-width: 640px) 28vw, 25vw"
               />
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-black/20 to-black" />
             </div>
@@ -127,7 +127,8 @@ export default function Home() {
                 alt="Cristiano Ronaldo Banner"
                 fill
                 className="object-cover object-top opacity-50 grayscale hover:grayscale-0 hover:opacity-75 transition-all duration-700"
-                sizes="(max-width: 640px) 28vw, (max-width: 768px) 25vw, (max-width: 1024px) 22vw, 25vw"
+                loading="lazy"
+                sizes="(max-width: 640px) 28vw, 25vw"
               />
               <div className="absolute inset-0 bg-gradient-to-l from-transparent via-black/20 to-black" />
             </div>

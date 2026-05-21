@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { ProductProvider } from "@/context/ProductContext";
+import Providers from "@/components/Providers";
 
 export const metadata: Metadata = {
   title: "COLOUR SEVEN FASHION",
@@ -17,11 +17,11 @@ export default function RootLayout({
   return (
     <html lang="en" className="h-full antialiased bg-black text-white">
       <body className="min-h-full flex flex-col font-sans">
-        <ProductProvider>
+        <Providers>
           <Navbar />
           <main className="flex-grow">{children}</main>
           <Footer />
-        </ProductProvider>
+        </Providers>
       </body>
     </html>
   );
