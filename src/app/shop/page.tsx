@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";import { useProducts } from "@/context/ProductContext";
 
 const categories = [
   {
@@ -12,7 +12,6 @@ const categories = [
     tagline: "TIMELESS PRECISION",
     description: "Chronographs, dive watches & signature timepieces built for legends.",
     image: "/images/chrono_watch.png",
-    count: 3,
     accent: "#CFF227",
   },
   {
@@ -21,7 +20,6 @@ const categories = [
     tagline: "FOOTWEAR LEGENDS",
     description: "Premium export-surplus sneakers & streetwear kicks that hit different.",
     image: "/images/nike_air_force.png",
-    count: 2,
     accent: "#CFF227",
   },
   {
@@ -30,7 +28,6 @@ const categories = [
     tagline: "STREETWEAR APPAREL",
     description: "Oversized hoodies, graphic tees & joggers — the uniform of the bold.",
     image: "/images/black_hoodie.png",
-    count: 3,
     accent: "#CFF227",
   },
   {
@@ -39,12 +36,17 @@ const categories = [
     tagline: "OUTLAW STYLING",
     description: "Caps, chains, bags & essentials to complete the Colour Seven look.",
     image: "/images/baseball_cap.png",
-    count: 4,
     accent: "#CFF227",
   },
 ];
 
 export default function Shop() {
+  const { products } = useProducts();
+
+  const getProductCount = (categoryName: string) => {
+    return products.filter((p) => p.category === categoryName).length;
+  };
+
   return (
     <div className="min-h-screen bg-black text-white pt-16 pb-24">
 
@@ -136,7 +138,7 @@ export default function Shop() {
 
                   {/* Product count badge */}
                   <div className="absolute top-5 right-5 bg-black/60 border border-white/10 backdrop-blur-sm text-white text-[10px] font-black tracking-widest uppercase px-3 py-1.5 rounded-full">
-                    {cat.count} Items
+                    {getProductCount(cat.name)} Items
                   </div>
                 </div>
 

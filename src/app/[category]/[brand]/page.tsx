@@ -98,6 +98,7 @@ export default function BrandPage({ params }: BrandPageProps) {
   );
 
   const sortedProducts = [...filteredProducts].sort((a, b) => {
+
     switch (sortBy) {
       case "price-low":
         return a.discount_price - b.discount_price;
@@ -293,7 +294,9 @@ export default function BrandPage({ params }: BrandPageProps) {
           </div>
         ) : (
           <div className="text-center py-16">
-            <p className="text-zinc-500">No products available for this brand yet</p>
+            <ShoppingBag className="w-16 h-16 text-zinc-700 mx-auto mb-4" />
+            <h3 className="text-xl font-bold text-white mb-2">No Products Available</h3>
+            <p className="text-zinc-500">This brand doesn't have any products yet. Check back soon!</p>
           </div>
         )}
       </div>

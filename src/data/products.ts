@@ -1,6 +1,7 @@
 export interface Product {
   id: string;
   name: string;
+  brand: string;
   price: number;
   category: "Watches" | "Shoes" | "Clothes" | "Accessories";
   images: string[];
@@ -14,6 +15,7 @@ export const products: Product[] = [
   {
     id: "1",
     name: "OVERSIZED HOODIE",
+    brand: "Colour Seven",
     price: 1799,
     category: "Clothes",
     images: [
@@ -27,6 +29,7 @@ export const products: Product[] = [
   {
     id: "2",
     name: "NIKE AIR FORCE 1 '07",
+    brand: "Colour Seven",
     price: 8495,
     category: "Shoes",
     images: [
@@ -40,6 +43,7 @@ export const products: Product[] = [
   {
     id: "3",
     name: "OUTLAW CHRONO WATCH",
+    brand: "Colour Seven",
     price: 2499,
     category: "Watches",
     images: [
@@ -53,6 +57,7 @@ export const products: Product[] = [
   {
     id: "4",
     name: "OUTLAW CAP",
+    brand: "Colour Seven",
     price: 699,
     category: "Accessories",
     images: [
@@ -66,6 +71,7 @@ export const products: Product[] = [
   {
     id: "5",
     name: "GRAPHIC OVERSIZED TEE",
+    brand: "Colour Seven",
     price: 1299,
     category: "Clothes",
     images: [
@@ -79,6 +85,7 @@ export const products: Product[] = [
   {
     id: "6",
     name: "CUBAN CHAIN SILVER",
+    brand: "Colour Seven",
     price: 1199,
     category: "Accessories",
     images: [
@@ -92,6 +99,7 @@ export const products: Product[] = [
   {
     id: "7",
     name: "CLASSIC GOLDEN CHRONOGRAPH",
+    brand: "Colour Seven",
     price: 3499,
     category: "Watches",
     images: [
@@ -105,6 +113,7 @@ export const products: Product[] = [
   {
     id: "8",
     name: "STREETWEAR SNEAKERS",
+    brand: "Colour Seven",
     price: 5999,
     category: "Shoes",
     images: [
@@ -118,6 +127,7 @@ export const products: Product[] = [
   {
     id: "9",
     name: "DISTRESSED STREETWEAR JOGGER",
+    brand: "Colour Seven",
     price: 2499,
     category: "Clothes",
     images: [
@@ -131,6 +141,7 @@ export const products: Product[] = [
   {
     id: "10",
     name: "OUTLAW KNIT BEANIE",
+    brand: "Colour Seven",
     price: 899,
     category: "Accessories",
     images: [
@@ -144,6 +155,7 @@ export const products: Product[] = [
   {
     id: "11",
     name: "RETRO DIVE WATCH",
+    brand: "Colour Seven",
     price: 1999,
     category: "Watches",
     images: [
@@ -157,6 +169,7 @@ export const products: Product[] = [
   {
     id: "12",
     name: "OUTLAW DUFFLE BAG",
+    brand: "Colour Seven",
     price: 3199,
     category: "Accessories",
     images: [

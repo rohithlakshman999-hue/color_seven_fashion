@@ -4,10 +4,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import ProductCard from "@/components/ProductCard";
-import { products } from "@/data/products";
+import { useProducts } from "@/context/ProductContext";
 import { ArrowLeft, Shirt } from "lucide-react";
 
 export default function ClothesPage() {
+  const { products } = useProducts();
   const catProducts = products.filter((p) => p.category === "Clothes");
 
   return (

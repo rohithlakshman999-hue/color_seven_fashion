@@ -15,12 +15,10 @@ const navLinks = [
 ];
 
 const shopSubLinks = [
-  { name: "Men", href: "/shop?gender=men" },
-  { name: "Women", href: "/shop?gender=women" },
-  { name: "Accessories", href: "/shop?category=Accessories" },
-  { name: "Footwear", href: "/shop?category=Shoes" },
-  { name: "Watches", href: "/shop?category=Watches" },
-  { name: "New Arrivals", href: "/shop?new=true" },
+  { name: "Watches", href: "/shop/watches" },
+  { name: "Shoes", href: "/shop/shoes" },
+  { name: "Clothes", href: "/shop/clothes" },
+  { name: "Accessories", href: "/shop/accessories" },
 ];
 
 export default function Navbar() {

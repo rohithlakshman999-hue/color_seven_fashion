@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { ProductProvider } from "@/context/ProductContext";
 
 export const metadata: Metadata = {
   title: "COLOUR SEVEN FASHION",
@@ -16,9 +17,11 @@ export default function RootLayout({
   return (
     <html lang="en" className="h-full antialiased bg-black text-white">
       <body className="min-h-full flex flex-col font-sans">
-        <Navbar />
-        <main className="flex-grow">{children}</main>
-        <Footer />
+        <ProductProvider>
+          <Navbar />
+          <main className="flex-grow">{children}</main>
+          <Footer />
+        </ProductProvider>
       </body>
     </html>
   );

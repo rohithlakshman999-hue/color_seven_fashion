@@ -66,6 +66,12 @@ export default function AdminBrands() {
     ? brands.filter((b) => b.category_id === selectedCategory)
     : brands;
 
+  // Group brands by category
+  const brandsByCategory = categories.map(cat => ({
+    category: cat,
+    brands: brands.filter(b => b.category_id === cat.id)
+  })).filter(group => group.brands.length > 0);
+
   if (loading)
     return (
       <div className="flex items-center justify-center h-96">Loading...</div>
@@ -86,7 +92,7 @@ export default function AdminBrands() {
 
       {error && <div className="p-4 bg-red-500/10 border border-red-500 rounded">{error}</div>}
 
-      <div className="flex gap-4">
+      <div className="flex gap-4 items-center">
         <select
           value={selectedCategory}
           onChange={(e) => setSelectedCategory(e.target.value)}
@@ -104,63 +110,130 @@ export default function AdminBrands() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredBrands.map((brand) => {
-          const category = categories.find((c) => c.id === brand.category_id);
-          return (
-            <div
-              key={brand.id}
-              className="p-4 bg-zinc-900 border border-white/10 rounded-lg hover:border-[#c9a227]/40 transition-all"
-            >
-              <div className="aspect-square bg-black/50 rounded mb-3 overflow-hidden">
-                {brand.logo && (
-                  <img
-                    src={brand.logo}
-                    alt={brand.name}
-                    className="w-full h-full object-cover"
-                  />
-                )}
+      {selectedCategory ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredBrands.map((brand) => {
+            const category = categories.find((c) => c.id === brand.category_id);
+            return (
+              <div
+                key={brand.id}
+                className="p-4 bg-zinc-900 border border-white/10 rounded-lg hover:border-[#c9a227]/40 transition-all"
+              >
+                <div className="aspect-square bg-black/50 rounded mb-3 overflow-hidden flex items-center justify-center">
+                  {brand.logo ? (
+                    <img
+                      src={brand.logo}
+                      alt={brand.name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="text-zinc-600 text-4xl font-bold">{brand.name.charAt(0)}</div>
+                  )}
+                </div>
+                <h3 className="font-bold text-lg mb-1">{brand.name}</h3>
+                <p className="text-xs text-[#c9a227] mb-2">
+                  {category?.name}
+                </p>
+                <p className="text-xs text-zinc-400 mb-3 line-clamp-2">
+                  {brand.description}
+                </p>
+                <div className="flex items-center gap-2 mb-3">
+                  <button
+                    onClick={() => toggleFeatured(brand.id, brand.featured)}
+                    className={`flex-1 flex items-center justify-center gap-1 text-xs py-1 rounded ${
+                      brand.featured
+                        ? "bg-yellow-500/20 text-yellow-400"
+                        : "bg-white/5 text-zinc-400"
+                    }`}
+                  >
+                    <Star className="w-3 h-3" />
+                    {brand.featured ? "Featured" : "Not Featured"}
+                  </button>
+                </div>
+                <div className="flex gap-2">
+                  <Link
+                    href={`/admin/brands/${brand.id}`}
+                    className="flex-1 flex items-center justify-center gap-1 px-2 py-2 bg-white/5 hover:bg-white/10 rounded text-xs"
+                  >
+                    <Edit2 className="w-4 h-4" />
+                    Edit
+                  </Link>
+                  <button
+                    onClick={() => deleteBrand(brand.id)}
+                    className="flex-1 flex items-center justify-center gap-1 px-2 py-2 bg-red-500/10 hover:bg-red-500/20 rounded text-xs text-red-400"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Delete
+                  </button>
+                </div>
               </div>
-              <h3 className="font-bold text-lg mb-1">{brand.name}</h3>
-              <p className="text-xs text-[#c9a227] mb-2">
-                {category?.name}
-              </p>
-              <p className="text-xs text-zinc-400 mb-3 line-clamp-2">
-                {brand.description}
-              </p>
-              <div className="flex items-center gap-2 mb-3">
-                <button
-                  onClick={() => toggleFeatured(brand.id, brand.featured)}
-                  className={`flex-1 flex items-center justify-center gap-1 text-xs py-1 rounded ${
-                    brand.featured
-                      ? "bg-yellow-500/20 text-yellow-400"
-                      : "bg-white/5 text-zinc-400"
-                  }`}
-                >
-                  <Star className="w-3 h-3" />
-                  {brand.featured ? "Featured" : "Not Featured"}
-                </button>
-              </div>
-              <div className="flex gap-2">
-                <Link
-                  href={`/admin/brands/${brand.id}`}
-                  className="flex-1 flex items-center justify-center gap-1 px-2 py-2 bg-white/5 hover:bg-white/10 rounded text-xs"
-                >
-                  <Edit2 className="w-4 h-4" />
-                  Edit
-                </Link>
-                <button
-                  onClick={() => deleteBrand(brand.id)}
-                  className="flex-1 flex items-center justify-center gap-1 px-2 py-2 bg-red-500/10 hover:bg-red-500/20 rounded text-xs text-red-400"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  Delete
-                </button>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="space-y-8">
+          {brandsByCategory.map((group) => (
+            <div key={group.category.id} className="space-y-4">
+              <h2 className="text-2xl font-bold text-[#c9a227] border-b border-white/10 pb-2">
+                {group.category.name} ({group.brands.length})
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {group.brands.map((brand) => (
+                  <div
+                    key={brand.id}
+                    className="p-4 bg-zinc-900 border border-white/10 rounded-lg hover:border-[#c9a227]/40 transition-all"
+                  >
+                    <div className="aspect-square bg-black/50 rounded mb-3 overflow-hidden flex items-center justify-center">
+                      {brand.logo ? (
+                        <img
+                          src={brand.logo}
+                          alt={brand.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="text-zinc-600 text-4xl font-bold">{brand.name.charAt(0)}</div>
+                      )}
+                    </div>
+                    <h3 className="font-bold text-lg mb-1">{brand.name}</h3>
+                    <p className="text-xs text-zinc-400 mb-3 line-clamp-2">
+                      {brand.description}
+                    </p>
+                    <div className="flex items-center gap-2 mb-3">
+                      <button
+                        onClick={() => toggleFeatured(brand.id, brand.featured)}
+                        className={`flex-1 flex items-center justify-center gap-1 text-xs py-1 rounded ${
+                          brand.featured
+                            ? "bg-yellow-500/20 text-yellow-400"
+                            : "bg-white/5 text-zinc-400"
+                        }`}
+                      >
+                        <Star className="w-3 h-3" />
+                        {brand.featured ? "Featured" : "Not Featured"}
+                      </button>
+                    </div>
+                    <div className="flex gap-2">
+                      <Link
+                        href={`/admin/brands/${brand.id}`}
+                        className="flex-1 flex items-center justify-center gap-1 px-2 py-2 bg-white/5 hover:bg-white/10 rounded text-xs"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                        Edit
+                      </Link>
+                      <button
+                        onClick={() => deleteBrand(brand.id)}
+                        className="flex-1 flex items-center justify-center gap-1 px-2 py-2 bg-red-500/10 hover:bg-red-500/20 rounded text-xs text-red-400"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
-          );
-        })}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

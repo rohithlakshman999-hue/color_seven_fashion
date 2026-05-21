@@ -10,6 +10,7 @@ interface ProductCardProps {
   product: {
     id: string;
     name: string;
+    brand?: string;
     price: number;
     images: string[];
     category: string;
@@ -78,6 +79,11 @@ export default function ProductCard({ product }: ProductCardProps) {
 
       <div className="px-1 flex flex-col flex-grow">
         <Link href={`/shop/${product.id}`} className="flex-grow">
+          {product.brand && (
+            <span className="text-[9px] text-[var(--accent-1)] tracking-widest font-bold uppercase mb-0.5 block">
+              {product.brand}
+            </span>
+          )}
           <h3 className="text-xs md:text-sm font-bold text-white uppercase tracking-wider mb-1.5 group-hover:text-[var(--accent-1)] transition-colors line-clamp-1">
             {product.name}
           </h3>

@@ -31,16 +31,16 @@ export default function Footer() {
                 <Link href="/shop" className="hover:text-white transition-luxury">All Products</Link>
               </li>
               <li>
-                <Link href="/shop?category=Watches" className="hover:text-white transition-luxury">Watches</Link>
+                <Link href="/shop/watches" className="hover:text-white transition-luxury">Watches</Link>
               </li>
               <li>
-                <Link href="/shop?category=Shoes" className="hover:text-white transition-luxury">Footwear</Link>
+                <Link href="/shop/shoes" className="hover:text-white transition-luxury">Footwear</Link>
               </li>
               <li>
-                <Link href="/shop?category=Clothes" className="hover:text-white transition-luxury">Clothing</Link>
+                <Link href="/shop/clothes" className="hover:text-white transition-luxury">Clothing</Link>
               </li>
               <li>
-                <Link href="/shop?category=Accessories" className="hover:text-white transition-luxury">Accessories</Link>
+                <Link href="/shop/accessories" className="hover:text-white transition-luxury">Accessories</Link>
               </li>
             </ul>
           </div>

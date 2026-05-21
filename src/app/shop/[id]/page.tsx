@@ -1,14 +1,15 @@
 "use client";
 
 import { useState, use } from "react";
-import { products } from "@/data/products";
+import { useProducts } from "@/context/ProductContext";
 import { Heart, ShoppingBag, ArrowLeft, Plus, Minus, ShieldCheck, RefreshCw, Truck } from "lucide-react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 
 export default function ProductDetail({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
-  const product = products.find(p => p.id === resolvedParams.id);
+  const { getProductById } = useProducts();
+  const product = getProductById(resolvedParams.id);
   
   const [selectedSize, setSelectedSize] = useState("");
   const [selectedColor, setSelectedColor] = useState("");
@@ -84,10 +85,17 @@ export default function ProductDetail({ params }: { params: Promise<{ id: string
               </span>
             )}
 
+            {product.brand && (
+              <span className="text-xs text-[var(--accent-1)] tracking-[0.2em] font-black uppercase mb-1.5 block">
+                {product.brand}
+              </span>
+            )}
             <h1 className="text-3xl md:text-5xl font-black text-white uppercase tracking-wider mb-2 leading-tight">
               {product.name}
             </h1>
-            <span className="text-[10px] text-zinc-500 tracking-widest font-black uppercase mb-6">{product.category}</span>
+            <span className="text-[10px] text-zinc-500 tracking-widest font-black uppercase mb-6 block">
+              {product.category}
+            </span>
             
             <p className="text-2xl md:text-3xl text-[var(--accent-1)] mb-8 font-black">
               ₹{product.price.toLocaleString()}
