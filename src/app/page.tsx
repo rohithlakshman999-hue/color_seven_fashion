@@ -4,7 +4,6 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { ArrowRight, Flame, ShieldCheck, Zap, Award, Truck } from "lucide-react";
 import ProductCard from "@/components/ProductCard";
-import { products } from "@/data/products";
 import Image from "next/image";
 import { useHomepageContent } from "@/context/HomepageContentContext";
 import { useProducts } from "@/context/ProductContext";
@@ -13,8 +12,10 @@ export default function Home() {
   const { getSection, loaded: contentLoaded } = useHomepageContent();
   const { products: dynamicProducts } = useProducts();
   
-  // Grab the 6 key trending products from dynamic products or fallback to static
-  const trendingProducts = (dynamicProducts.length > 0 ? dynamicProducts : products).slice(0, 6);
+  // Grab the 6 key trending products from dynamic products
+  const trendingProducts = dynamicProducts.filter(p => p.isTrending).length > 0
+    ? dynamicProducts.filter(p => p.isTrending).slice(0, 6)
+    : dynamicProducts.slice(0, 6);
 
   // Fetch homepage content from Supabase
   const heroContent = getSection("hero") as {

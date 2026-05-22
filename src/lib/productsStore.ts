@@ -53,14 +53,8 @@ function loadLocalProducts(): Product[] {
     return stored;
   }
 
-  if (isProductsCustomized()) {
-    memoryCache = [];
-    return [];
-  }
-
-  const defaults = buildDefaultProducts();
-  writeLocalProducts(defaults);
-  return defaults;
+  memoryCache = [];
+  return [];
 }
 
 async function fetchRemoteProducts(): Promise<Product[] | null> {
@@ -77,8 +71,11 @@ async function fetchRemoteProducts(): Promise<Product[] | null> {
       featured,
       full_description,
       short_description,
+      tags,
       brands ( name ),
-      categories ( slug )
+      categories ( slug ),
+      product_images ( image_url, display_order ),
+      product_variants ( size, color )
     `
     );
 
@@ -95,17 +92,43 @@ async function fetchRemoteProducts(): Promise<Product[] | null> {
     const catObj = r.categories as { slug?: string } | null;
     const slug = catObj?.slug || "accessories";
 
+    const rawImages = r.product_images as { image_url: string; display_order?: number }[] | null;
+    let images: string[] = [];
+    if (rawImages && Array.isArray(rawImages)) {
+      const sorted = [...rawImages].sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0));
+      images = sorted.map((img) => img.image_url);
+    }
+    if (images.length === 0) {
+      images = ["/images/chrono_watch.png"];
+    }
+
+    const rawVariants = r.product_variants as { size?: string; color?: string }[] | null;
+    const sizesSet = new Set<string>();
+    const colorsSet = new Set<string>();
+    if (rawVariants && Array.isArray(rawVariants)) {
+      rawVariants.forEach((v) => {
+        if (v.size) sizesSet.add(v.size);
+        if (v.color) colorsSet.add(v.color);
+      });
+    }
+    const sizes = sizesSet.size > 0 ? Array.from(sizesSet) : ["One Size"];
+    const colors = colorsSet.size > 0 ? Array.from(colorsSet) : ["Default"];
+
+    const rawTags = r.tags as string[] | null;
+    const isTrending = Array.isArray(rawTags) && rawTags.includes("trending");
+
     return {
       id: String(r.id),
       name: String(r.name),
       brand: brandObj?.name || "Colour Seven",
       price: Math.round(Number(r.discount_price) || Number(r.original_price) || 0),
       category: slugToProductCategory(slug),
-      images: ["/images/chrono_watch.png"],
+      images,
       description: String(r.full_description || r.short_description || ""),
-      sizes: ["One Size"],
-      colors: ["Default"],
+      sizes,
+      colors,
       isNew: Boolean(r.featured),
+      isTrending,
     };
   });
 }
@@ -163,17 +186,10 @@ export async function loadProducts(force = false): Promise<Product[]> {
     }
   }
 
-  // Fallback to local storage or default products
+  // Fallback to local storage
   const local = loadLocalProducts();
-  if (local.length > 0) {
-    memoryCache = local;
-    return local;
-  }
-
-  // Final fallback to default products
-  const defaults = buildDefaultProducts();
-  memoryCache = defaults;
-  return defaults;
+  memoryCache = local;
+  return local;
 }
 
 export function getProductsSync(): Product[] {
@@ -233,6 +249,7 @@ export async function addProduct(product: Omit<Product, "id">): Promise<Product>
               original_price: product.price,
               discount_price: product.price,
               featured: product.isNew,
+              tags: product.isTrending ? ["trending"] : [],
               is_active: true,
             })
             .select("id")
@@ -240,14 +257,41 @@ export async function addProduct(product: Omit<Product, "id">): Promise<Product>
 
           if (!error && data?.id) {
             newProduct.id = String(data.id);
-            if (product.images[0]) {
-              await supabase.from("product_images").insert({
+            
+            // Insert all product images
+            if (product.images && product.images.length > 0) {
+              const imageInserts = product.images.map((imgUrl, index) => ({
                 product_id: data.id,
-                image_url: product.images[0],
-                display_order: 0,
-                is_main: true,
-              });
+                image_url: imgUrl,
+                display_order: index,
+                is_main: index === 0,
+              }));
+              await supabase.from("product_images").insert(imageInserts);
             }
+
+            // Insert color and size combinations into product_variants
+            const variantInserts: any[] = [];
+            let variantIndex = 0;
+            const sizesToInsert = product.sizes && product.sizes.length > 0 ? product.sizes : ["One Size"];
+            const colorsToInsert = product.colors && product.colors.length > 0 ? product.colors : ["Default"];
+
+            for (const s of sizesToInsert) {
+              for (const c of colorsToInsert) {
+                variantInserts.push({
+                  product_id: data.id,
+                  size: s,
+                  color: c,
+                  sku: `SKU-${data.id}-${variantIndex++}-${Math.random().toString(36).slice(2, 5)}`,
+                  stock_quantity: 10,
+                  stock_status: "in_stock",
+                });
+              }
+            }
+
+            if (variantInserts.length > 0) {
+              await supabase.from("product_variants").insert(variantInserts);
+            }
+
             await refreshProducts();
             markProductsCustomized();
             return newProduct;
@@ -291,6 +335,9 @@ export async function updateProduct(
         payload.short_description = updates.description.slice(0, 200);
       }
       if (updates.isNew !== undefined) payload.featured = updates.isNew;
+      if (updates.isTrending !== undefined) {
+        payload.tags = updates.isTrending ? ["trending"] : [];
+      }
 
       if (Object.keys(payload).length > 0) {
         const { error } = await supabase.from("products").update(payload).eq("id", id);
@@ -298,6 +345,52 @@ export async function updateProduct(
           console.warn("Supabase update failed (RLS?):", error.message);
         }
       }
+
+      // Sync images if updated
+      if (updates.images !== undefined) {
+        await supabase.from("product_images").delete().eq("product_id", id);
+        if (updates.images.length > 0) {
+          const imageInserts = updates.images.map((imgUrl, index) => ({
+            product_id: id,
+            image_url: imgUrl,
+            display_order: index,
+            is_main: index === 0,
+          }));
+          await supabase.from("product_images").insert(imageInserts);
+        }
+      }
+
+      // Sync variants if sizes or colors updated
+      if (updates.sizes !== undefined || updates.colors !== undefined) {
+        const existing = list.find((p) => p.id === id);
+        const sizesToInsert = updates.sizes !== undefined ? updates.sizes : (existing?.sizes || ["One Size"]);
+        const colorsToInsert = updates.colors !== undefined ? updates.colors : (existing?.colors || ["Default"]);
+
+        await supabase.from("product_variants").delete().eq("product_id", id);
+
+        const variantInserts: any[] = [];
+        let variantIndex = 0;
+        const finalSizes = sizesToInsert.length > 0 ? sizesToInsert : ["One Size"];
+        const finalColors = colorsToInsert.length > 0 ? colorsToInsert : ["Default"];
+
+        for (const s of finalSizes) {
+          for (const c of finalColors) {
+            variantInserts.push({
+              product_id: id,
+              size: s,
+              color: c,
+              sku: `SKU-${id}-${variantIndex++}-${Math.random().toString(36).slice(2, 5)}`,
+              stock_quantity: 10,
+              stock_status: "in_stock",
+            });
+          }
+        }
+        if (variantInserts.length > 0) {
+          await supabase.from("product_variants").insert(variantInserts);
+        }
+      }
+
+      await refreshProducts();
     } catch (error) {
       console.warn("Failed to update in Supabase:", error);
     }
@@ -317,6 +410,7 @@ export async function deleteProduct(id: string): Promise<void> {
       if (error) {
         console.warn("Supabase delete failed (RLS?):", error.message);
       }
+      await refreshProducts();
     } catch (error) {
       console.warn("Failed to delete from Supabase:", error);
     }

@@ -30,6 +30,7 @@ export interface Product {
   sizes: string[];
   colors: string[];
   isNew: boolean;
+  isTrending?: boolean;
 }
 
 interface ProductContextType {
@@ -60,7 +61,7 @@ export function ProductProvider({ children }: { children: ReactNode }) {
     let active = true;
     (async () => {
       try {
-        const data = await loadProducts(true);
+        const data = await loadProducts();
         if (active) setProducts(data);
       } catch (error) {
         console.error("Failed to load products:", error);

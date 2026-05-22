@@ -3,11 +3,10 @@
 import { useState, useEffect, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { useCatalog } from "@/context/CatalogContext";
-import { supabase } from "@/lib/supabase";
+import { uploadAdminImage } from "@/lib/imageUpload";
 import AdminSelect, { AdminSelectOption } from "@/components/AdminSelect";
 import { ArrowLeft, Upload, X, Loader, AlertCircle, CheckCircle } from "lucide-react";
 import Link from "next/link";
-import Image from "next/image";
 
 export default function AddBrandPage() {
   const router = useRouter();
@@ -57,26 +56,12 @@ export default function AddBrandPage() {
       return;
     }
 
-    if (!supabase) {
-      setMessage({ text: "Image upload requires Supabase configuration", type: "error" });
-      return;
-    }
     setUploadingLogo(true);
     try {
-      const fileName = `${Date.now()}-${file.name.replace(/\s+/g, "-")}`;
-      const { error } = await supabase.storage
-        .from("brand-assets")
-        .upload(`logos/${fileName}`, file);
-
-      if (error) throw error;
-
-      const { data: publicUrl } = supabase.storage
-        .from("brand-assets")
-        .getPublicUrl(`logos/${fileName}`);
-
-      setFormData(prev => ({ ...prev, logoUrl: publicUrl.publicUrl }));
-      setLogoPreview(publicUrl.publicUrl);
-      setMessage({ text: "Logo uploaded successfully!", type: "success" });
+      const publicUrl = await uploadAdminImage(file, "brand-logos", "logos");
+      setFormData(prev => ({ ...prev, logoUrl: publicUrl }));
+      setLogoPreview(publicUrl);
+      setMessage({ text: "✓ Logo uploaded successfully!", type: "success" });
       setTimeout(() => setMessage({ text: "", type: "" }), 3000);
     } catch (error) {
       setMessage({ text: `Upload failed: ${error instanceof Error ? error.message : "Unknown error"}`, type: "error" });
@@ -91,26 +76,12 @@ export default function AddBrandPage() {
       return;
     }
 
-    if (!supabase) {
-      setMessage({ text: "Image upload requires Supabase configuration", type: "error" });
-      return;
-    }
     setUploadingBanner(true);
     try {
-      const fileName = `${Date.now()}-${file.name.replace(/\s+/g, "-")}`;
-      const { error } = await supabase.storage
-        .from("brand-assets")
-        .upload(`banners/${fileName}`, file);
-
-      if (error) throw error;
-
-      const { data: publicUrl } = supabase.storage
-        .from("brand-assets")
-        .getPublicUrl(`banners/${fileName}`);
-
-      setFormData(prev => ({ ...prev, bannerUrl: publicUrl.publicUrl }));
-      setBannerPreview(publicUrl.publicUrl);
-      setMessage({ text: "Banner uploaded successfully!", type: "success" });
+      const publicUrl = await uploadAdminImage(file, "brand-banners", "banners");
+      setFormData(prev => ({ ...prev, bannerUrl: publicUrl }));
+      setBannerPreview(publicUrl);
+      setMessage({ text: "✓ Banner uploaded successfully!", type: "success" });
       setTimeout(() => setMessage({ text: "", type: "" }), 3000);
     } catch (error) {
       setMessage({ text: `Upload failed: ${error instanceof Error ? error.message : "Unknown error"}`, type: "error" });
@@ -237,7 +208,7 @@ export default function AddBrandPage() {
               placeholder={`Select Category (${categories.length} available)`}
             >
               {categories.map((cat) => (
-                <AdminSelectOption optionKey={`cat-${cat.id}`} value={cat.id}>
+                <AdminSelectOption key={`cat-${cat.id}`} optionKey={`cat-${cat.id}`} value={cat.id}>
                   {cat.name}
                 </AdminSelectOption>
               ))}
@@ -296,11 +267,10 @@ export default function AddBrandPage() {
 
           {logoPreview && (
             <div className="relative w-32 h-32 bg-black border border-white/10 rounded-lg overflow-hidden">
-              <Image
+              <img
                 src={logoPreview}
                 alt="Logo Preview"
-                fill
-                className="object-contain p-2"
+                className="w-full h-full object-contain p-2"
               />
               <button
                 type="button"
@@ -365,11 +335,10 @@ export default function AddBrandPage() {
 
           {bannerPreview && (
             <div className="relative w-full h-32 bg-black border border-white/10 rounded-lg overflow-hidden">
-              <Image
+              <img
                 src={bannerPreview}
                 alt="Banner Preview"
-                fill
-                className="object-cover"
+                className="w-full h-full object-cover"
               />
               <button
                 type="button"

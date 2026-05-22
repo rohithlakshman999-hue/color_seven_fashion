@@ -159,7 +159,7 @@ export default function WatchesPage() {
                   Brands Directory
                 </h3>
                 <span className="text-[10px] bg-white/5 px-2 py-0.5 rounded text-zinc-400 font-bold">
-                  {watchBrands.length}
+                  {mounted ? watchBrands.length : 0}
                 </span>
               </div>
 

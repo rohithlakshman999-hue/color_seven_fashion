@@ -9,6 +9,7 @@ export interface Product {
   sizes: string[];
   colors: string[];
   isNew: boolean;
+  isTrending?: boolean;
 }
 
 export const products: Product[] = [

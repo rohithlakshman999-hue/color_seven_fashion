@@ -59,7 +59,7 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
     let active = true;
     (async () => {
       try {
-        const data = await loadCatalog(true);
+        const data = await loadCatalog();
         if (active) applyCatalog(data);
       } finally {
         if (active) setLoading(false);

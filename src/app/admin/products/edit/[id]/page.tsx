@@ -3,17 +3,45 @@
 import { useState, useEffect, useRef, KeyboardEvent, FormEvent, use } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { ArrowLeft, X, Save, AlertCircle } from "lucide-react";
+import { ArrowLeft, X, Save, AlertCircle, Loader, Upload, Plus } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { useProducts } from "@/context/ProductContext";
-import { Plus } from "lucide-react";
 import { useCatalog } from "@/context/CatalogContext";
+import { uploadAdminImage } from "@/lib/imageUpload";
 import {
   PRODUCT_CATEGORIES,
   getBrandsForProductCategory,
   brandOptionKey,
 } from "@/lib/catalogHelpers";
 import AdminSelect, { AdminSelectOption } from "@/components/AdminSelect";
+
+function convertGoogleDriveUrl(url: string): string {
+  const trimmed = url.trim();
+  
+  // Pattern 1: drive.google.com/file/d/FILE_ID/...
+  const fileDRegex = /drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/;
+  const match1 = trimmed.match(fileDRegex);
+  if (match1 && match1[1]) {
+    return `https://docs.google.com/uc?export=view&id=${match1[1]}`;
+  }
+
+  // Pattern 2: drive.google.com/open?id=FILE_ID or docs.google.com/open?id=FILE_ID
+  const openIdRegex = /[drive|docs]\.google\.com\/open\?id=([a-zA-Z0-9_-]+)/;
+  const match2 = trimmed.match(openIdRegex);
+  if (match2 && match2[1]) {
+    return `https://docs.google.com/uc?export=view&id=${match2[1]}`;
+  }
+
+  // Pattern 3: docs.google.com/file/d/FILE_ID/...
+  const docsDRegex = /docs\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/;
+  const match3 = trimmed.match(docsDRegex);
+  if (match3 && match3[1]) {
+    return `https://docs.google.com/uc?export=view&id=${match3[1]}`;
+  }
+
+  return trimmed;
+}
 
 export default function EditProductPage({
   params,
@@ -41,6 +69,8 @@ export default function EditProductPage({
   const [sizes, setSizes] = useState<string[]>([]);
   const [sizeInput, setSizeInput] = useState("");
   const [isNew, setIsNew] = useState(false);
+  const [isTrending, setIsTrending] = useState(false);
+  const [uploadingImages, setUploadingImages] = useState<boolean[]>([]);
   const initialLoadDone = useRef(false);
 
   useEffect(() => {
@@ -76,6 +106,7 @@ export default function EditProductPage({
     setColors([...product.colors]);
     setSizes([...product.sizes]);
     setIsNew(product.isNew);
+    setIsTrending(product.isTrending || false);
     setLoaded(true);
     initialLoadDone.current = true;
   }, [id, getProductById, catalogBrands, productsLoaded, catalogLoading]);
@@ -92,9 +123,61 @@ export default function EditProductPage({
   };
 
   const updateImage = (index: number, value: string) => {
+    const converted = convertGoogleDriveUrl(value);
     const updated = [...images];
-    updated[index] = value;
+    updated[index] = converted;
     setImages(updated);
+  };
+
+  const handleImageUpload = async (index: number, file: File) => {
+    if (!file.type.startsWith("image/")) {
+      alert("Please upload an image file");
+      return;
+    }
+
+    const uploadingStates = new Array(5).fill(false);
+    uploadingStates[index] = true;
+    setUploadingImages(uploadingStates);
+
+    try {
+      const publicUrl = await uploadAdminImage(file, "product-images", "products");
+      updateImage(index, publicUrl);
+    } catch (error) {
+      alert(`Upload failed: ${error instanceof Error ? error.message : "Unknown error"}`);
+    } finally {
+      const uploadingStates = new Array(5).fill(false);
+      setUploadingImages(uploadingStates);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.currentTarget.classList.add("border-[var(--accent-1)]", "bg-white/5");
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.currentTarget.classList.remove("border-[var(--accent-1)]", "bg-white/5");
+  };
+
+  const handleDrop = async (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    e.currentTarget.classList.remove("border-[var(--accent-1)]", "bg-white/5");
+    
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const file = e.dataTransfer.files[0];
+      if (file.type.startsWith("image/")) {
+        await handleImageUpload(index, file);
+      } else {
+        alert("Please drop an image file.");
+      }
+      return;
+    }
+
+    const url = e.dataTransfer.getData("text/uri-list") || e.dataTransfer.getData("text/plain");
+    if (url) {
+      updateImage(index, url);
+    }
   };
 
   const removeImage = (index: number) => {
@@ -149,6 +232,7 @@ export default function EditProductPage({
       sizes,
       colors,
       isNew,
+      isTrending,
     });
 
     router.push("/admin/products");
@@ -322,42 +406,106 @@ export default function EditProductPage({
         </div>
 
         {/* Images */}
-        <div className="space-y-3">
+        <div className="space-y-4">
           <div className="flex items-center justify-between">
             <label className="text-xs uppercase tracking-wider text-zinc-500 font-medium">
-              Image URLs * (up to 5)
+              Product Images (up to 5)
             </label>
             {images.length < 5 && (
               <button
                 type="button"
                 onClick={addImageField}
-                className="flex items-center gap-1 text-xs text-[var(--accent-1)] hover:underline"
+                className="flex items-center gap-1.5 text-xs text-[var(--accent-1)] bg-[var(--accent-1)]/10 px-3 py-1.5 rounded-lg hover:bg-[var(--accent-1)]/20 transition-all font-bold"
               >
-                <Plus className="w-3 h-3" />
-                Add Image
+                <Plus className="w-3.5 h-3.5" />
+                Add Image Slot
               </button>
             )}
           </div>
-          {images.map((img, i) => (
-            <div key={i} className="flex gap-2">
-              <input
-                type="text"
-                value={img}
-                onChange={(e) => updateImage(i, e.target.value)}
-                placeholder={`/images/product-${i + 1}.png`}
-                className="flex-1 bg-black border border-white/10 rounded-xl px-4 py-3 text-white placeholder-zinc-600 focus:border-[var(--accent-1)] focus:outline-none transition-colors text-sm"
-              />
-              {images.length > 1 && (
-                <button
-                  type="button"
-                  onClick={() => removeImage(i)}
-                  className="p-3 rounded-xl text-zinc-500 hover:text-red-400 hover:bg-red-500/10 transition-all"
+          <p className="text-xs text-zinc-400 mt-1">Drag & drop files or paste URLs (Main image is the first slot)</p>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+            {images.map((img, index) => (
+              <div key={index} className="space-y-2 p-4 rounded-xl border border-white/5 bg-zinc-900/40">
+                <div className="flex items-center justify-between">
+                  <div className="text-xs text-zinc-500 font-medium uppercase tracking-wider">
+                    {index === 0 ? "Main Image" : `Image ${index + 1}`}
+                    {index < 2 && <span className="text-[var(--accent-1)] ml-1">*</span>}
+                  </div>
+                  {images.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeImage(index)}
+                      className="text-xs text-red-400 hover:text-red-300 transition-colors"
+                    >
+                      Remove Slot
+                    </button>
+                  )}
+                </div>
+
+                {/* Preview */}
+                {img && (
+                  <div className="relative w-full h-32 bg-black border border-white/10 rounded-lg overflow-hidden">
+                    <Image
+                      src={img}
+                      alt={`Preview ${index + 1}`}
+                      fill
+                      className="object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        updateImage(index, "");
+                      }}
+                      className="absolute top-2 right-2 p-1.5 bg-red-500 rounded text-white hover:bg-red-600 transition-colors"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                )}
+
+                {/* URL Input */}
+                <input
+                  type="text"
+                  value={img}
+                  onChange={(e) => updateImage(index, e.target.value)}
+                  placeholder="Paste image URL or upload below"
+                  className="w-full bg-black border border-white/10 rounded-lg px-3 py-2 text-white placeholder-zinc-600 focus:border-[var(--accent-1)] focus:outline-none transition-colors text-sm"
+                />
+
+                {/* Upload */}
+                <label
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, index)}
+                  className="flex items-center justify-center gap-2 w-full border-2 border-dashed border-white/20 rounded-lg px-3 py-2 cursor-pointer hover:border-[var(--accent-1)] hover:bg-white/5 transition-all"
                 >
-                  <X className="w-4 h-4" />
-                </button>
-              )}
-            </div>
-          ))}
+                  {uploadingImages[index] ? (
+                    <>
+                      <Loader className="w-4 h-4 animate-spin text-[var(--accent-1)]" />
+                      <span className="text-xs text-zinc-400">Uploading...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-4 h-4 text-zinc-400" />
+                      <span className="text-xs text-zinc-400">Upload / Drag & Drop Image</span>
+                    </>
+                  )}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      if (e.target.files?.[0]) {
+                        handleImageUpload(index, e.target.files[0]);
+                      }
+                    }}
+                    disabled={uploadingImages[index]}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Colors */}
@@ -439,6 +587,23 @@ export default function EditProductPage({
             />
           </div>
           <span className="text-sm text-zinc-300">Mark as New Arrival</span>
+        </label>
+
+        {/* isTrending toggle */}
+        <label className="flex items-center gap-3 cursor-pointer">
+          <div
+            className={`relative w-11 h-6 rounded-full transition-colors ${
+              isTrending ? "bg-[var(--accent-1)]" : "bg-zinc-800"
+            }`}
+            onClick={() => setIsTrending(!isTrending)}
+          >
+            <div
+              className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-black transition-transform ${
+                isTrending ? "translate-x-5" : ""
+              }`}
+            />
+          </div>
+          <span className="text-sm text-zinc-300">Display on Trending List on Homepage</span>
         </label>
 
         {/* Submit */}

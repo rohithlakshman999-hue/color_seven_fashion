@@ -2,7 +2,7 @@
 
 import { useState, useEffect, FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
+import { uploadAdminImage, uploadAdminRemoteUrl } from "@/lib/imageUpload";
 import { Category, Brand } from "@/types/database";
 import { useCatalog } from "@/context/CatalogContext";
 import { useProducts } from "@/context/ProductContext";
@@ -11,7 +11,33 @@ import { brandOptionKey } from "@/lib/catalogHelpers";
 import AdminSelect, { AdminSelectOption } from "@/components/AdminSelect";
 import { ArrowLeft, Upload, X, Loader, AlertCircle, CheckCircle } from "lucide-react";
 import Link from "next/link";
-import Image from "next/image";
+
+function convertGoogleDriveUrl(url: string): string {
+  const trimmed = url.trim();
+  
+  // Pattern 1: drive.google.com/file/d/FILE_ID/...
+  const fileDRegex = /drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/;
+  const match1 = trimmed.match(fileDRegex);
+  if (match1 && match1[1]) {
+    return `https://docs.google.com/uc?export=view&id=${match1[1]}`;
+  }
+
+  // Pattern 2: drive.google.com/open?id=FILE_ID or docs.google.com/open?id=FILE_ID
+  const openIdRegex = /[drive|docs]\.google\.com\/open\?id=([a-zA-Z0-9_-]+)/;
+  const match2 = trimmed.match(openIdRegex);
+  if (match2 && match2[1]) {
+    return `https://docs.google.com/uc?export=view&id=${match2[1]}`;
+  }
+
+  // Pattern 3: docs.google.com/file/d/FILE_ID/...
+  const docsDRegex = /docs\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/;
+  const match3 = trimmed.match(docsDRegex);
+  if (match3 && match3[1]) {
+    return `https://docs.google.com/uc?export=view&id=${match3[1]}`;
+  }
+
+  return trimmed;
+}
 
 export default function AddProductPage() {
   const router = useRouter();
@@ -36,6 +62,7 @@ export default function AddProductPage() {
     stockStatus: "in_stock" as "in_stock" | "out_of_stock" | "low_stock",
     collectionType: "",
     featured: false,
+    isTrending: false,
     isActive: true,
     colors: [] as string[],
     sizes: [] as string[],
@@ -71,13 +98,44 @@ export default function AddProductPage() {
     : brands;
 
   const handleImageUrlChange = (index: number, url: string) => {
+    const converted = convertGoogleDriveUrl(url);
     const newUrls = [...imageUrls];
-    newUrls[index] = url;
+    newUrls[index] = converted;
     setImageUrls(newUrls);
-    if (url.startsWith("http")) {
+    if (converted.startsWith("http") || converted.startsWith("/")) {
       const newPreviews = [...imagePreviews];
-      newPreviews[index] = url;
+      newPreviews[index] = converted;
       setImagePreviews(newPreviews);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.currentTarget.classList.add("border-[var(--accent-1)]", "bg-white/5");
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.currentTarget.classList.remove("border-[var(--accent-1)]", "bg-white/5");
+  };
+
+  const handleDrop = async (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    e.currentTarget.classList.remove("border-[var(--accent-1)]", "bg-white/5");
+    
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const file = e.dataTransfer.files[0];
+      if (file.type.startsWith("image/")) {
+        await handleImageUpload(index, file);
+      } else {
+        setMessage({ text: "Please drop an image file", type: "error" });
+      }
+      return;
+    }
+
+    const url = e.dataTransfer.getData("text/uri-list") || e.dataTransfer.getData("text/plain");
+    if (url) {
+      handleImageUrlChange(index, url);
     }
   };
 
@@ -92,32 +150,19 @@ export default function AddProductPage() {
     setUploadingImages(uploadingStates);
 
     try {
-      const fileName = `${Date.now()}-${file.name}`;
-      if (!supabase) {
-        setMessage({ text: "Image upload requires Supabase configuration", type: "error" });
-        return;
-      }
-      const { data, error } = await supabase.storage
-        .from("product-images")
-        .upload(`products/${fileName}`, file);
-
-      if (error) throw error;
-
-      const { data: publicUrl } = supabase.storage
-        .from("product-images")
-        .getPublicUrl(`products/${fileName}`);
-
+      const publicUrl = await uploadAdminImage(file, "product-images", "products");
       const newUrls = [...imageUrls];
-      newUrls[index] = publicUrl.publicUrl;
+      newUrls[index] = publicUrl;
       setImageUrls(newUrls);
 
       const newPreviews = [...imagePreviews];
-      newPreviews[index] = publicUrl.publicUrl;
+      newPreviews[index] = publicUrl;
       setImagePreviews(newPreviews);
 
-      setMessage({ text: "Image uploaded successfully", type: "success" });
+      setMessage({ text: "✓ Image uploaded successfully", type: "success" });
     } catch (error) {
-      setMessage({ text: `Upload failed: ${error instanceof Error ? error.message : "Unknown error"}`, type: "error" });
+      const errorText = error instanceof Error ? error.message : "Unknown error";
+      setMessage({ text: `Upload failed: ${errorText}`, type: "error" });
     } finally {
       const uploadingStates = new Array(5).fill(false);
       setUploadingImages(uploadingStates);
@@ -178,6 +223,7 @@ export default function AddProductPage() {
         sizes: formData.sizes.length > 0 ? formData.sizes : ["One Size"],
         colors: formData.colors.length > 0 ? formData.colors : ["Default"],
         isNew: formData.featured,
+        isTrending: formData.isTrending,
       });
 
       setMessage({ text: "✓ Product added successfully!", type: "success" });
@@ -457,11 +503,10 @@ export default function AddProductPage() {
                 {/* Preview */}
                 {imagePreviews[index] && (
                   <div className="relative w-full h-32 bg-black border border-white/10 rounded-lg overflow-hidden">
-                    <Image
+                    <img
                       src={imagePreviews[index]}
                       alt={`Preview ${index + 1}`}
-                      fill
-                      className="object-cover"
+                      className="w-full h-full object-cover"
                     />
                     <button
                       type="button"
@@ -488,9 +533,50 @@ export default function AddProductPage() {
                   placeholder="Paste image URL or upload below"
                   className="w-full bg-black border border-white/10 rounded-lg px-3 py-2 text-white placeholder-zinc-600 focus:border-[var(--accent-1)] focus:outline-none transition-colors text-sm"
                 />
+                <div className="flex gap-2 mt-2">
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const url = imageUrls[index];
+                      if (!url) return setMessage({ text: "No URL to import", type: "error" });
+                      try {
+                        setUploadingImages((s) => {
+                          const copy = [...s];
+                          copy[index] = true;
+                          return copy;
+                        });
+                        const publicUrl = await uploadAdminRemoteUrl(url, "product-images", "products");
+                        const newUrls = [...imageUrls];
+                        newUrls[index] = publicUrl;
+                        setImageUrls(newUrls);
+                        const newPreviews = [...imagePreviews];
+                        newPreviews[index] = publicUrl;
+                        setImagePreviews(newPreviews);
+                        setMessage({ text: "✓ Image imported to storage", type: "success" });
+                      } catch (err) {
+                        setMessage({ text: `Import failed: ${err instanceof Error ? err.message : String(err)}`, type: "error" });
+                      } finally {
+                        setUploadingImages((s) => {
+                          const copy = [...s];
+                          copy[index] = false;
+                          return copy;
+                        });
+                      }
+                    }}
+                    className="px-3 py-2 bg-[var(--accent-1)] rounded text-black text-xs font-medium hover:brightness-105 transition-all"
+                  >
+                    Import URL
+                  </button>
+                  <span className="text-xs text-zinc-500 self-center">or upload below</span>
+                </div>
 
                 {/* Upload */}
-                <label className="flex items-center justify-center gap-2 w-full border-2 border-dashed border-white/20 rounded-lg px-3 py-2 cursor-pointer hover:border-[var(--accent-1)] hover:bg-white/5 transition-all">
+                <label
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, index)}
+                  className="flex items-center justify-center gap-2 w-full border-2 border-dashed border-white/20 rounded-lg px-3 py-2 cursor-pointer hover:border-[var(--accent-1)] hover:bg-white/5 transition-all"
+                >
                   {uploadingImages[index] ? (
                     <>
                       <Loader className="w-4 h-4 animate-spin text-[var(--accent-1)]" />
@@ -666,7 +752,7 @@ export default function AddProductPage() {
         <div className="space-y-4">
           <h3 className="text-lg font-bold text-white">Status</h3>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <label className="flex items-center gap-3 cursor-pointer p-4 rounded-lg border border-white/10 hover:border-white/20 transition-colors">
               <input
                 type="checkbox"
@@ -675,7 +761,18 @@ export default function AddProductPage() {
                 onChange={handleInputChange}
                 className="w-4 h-4 rounded border-white/20 accent-[var(--accent-1)]"
               />
-              <span className="text-sm text-white font-medium">Mark as Featured Product</span>
+              <span className="text-sm text-white font-medium">Mark as Featured</span>
+            </label>
+
+            <label className="flex items-center gap-3 cursor-pointer p-4 rounded-lg border border-white/10 hover:border-white/20 transition-colors">
+              <input
+                type="checkbox"
+                name="isTrending"
+                checked={formData.isTrending}
+                onChange={handleInputChange}
+                className="w-4 h-4 rounded border-white/20 accent-[var(--accent-1)]"
+              />
+              <span className="text-sm text-white font-medium">Trending on Homepage</span>
             </label>
 
             <label className="flex items-center gap-3 cursor-pointer p-4 rounded-lg border border-white/10 hover:border-white/20 transition-colors">

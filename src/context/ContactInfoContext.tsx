@@ -39,13 +39,12 @@ export function ContactInfoProvider({ children }: { children: ReactNode }) {
       const { data, error } = await supabase
         .from("contact_info")
         .select("*")
-        .eq("is_active", true)
-        .maybeSingle();
+        .eq("is_active", true);
 
       if (error) {
         throw error;
       } else {
-        setContactInfo(data as ContactInfo | null);
+        setContactInfo((data?.[0] as ContactInfo) || null);
       }
     } catch (error) {
       console.error("Failed to load contact info:", error);

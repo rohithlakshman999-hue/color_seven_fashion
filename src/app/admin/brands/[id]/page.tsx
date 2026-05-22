@@ -2,14 +2,13 @@
 
 import { useState, useEffect, FormEvent } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { supabase } from "@/lib/supabase";
+import { uploadAdminImage } from "@/lib/imageUpload";
 import { Brand } from "@/types/database";
 import { useCatalog } from "@/context/CatalogContext";
 import { useProducts, type Product as StoreProduct } from "@/context/ProductContext";
 import AdminSelect, { AdminSelectOption } from "@/components/AdminSelect";
 import { ArrowLeft, Upload, X, Loader, AlertCircle, CheckCircle, Trash2, Plus, Package, Edit2 } from "lucide-react";
 import Link from "next/link";
-import Image from "next/image";
 
 export default function EditBrandPage() {
   const router = useRouter();
@@ -96,31 +95,17 @@ export default function EditBrandPage() {
     if (type === "logo") setUploadingLogo(true);
     else setUploadingBanner(true);
 
-    if (!supabase) {
-      setMessage({ text: "Image upload requires Supabase configuration", type: "error" });
-      return;
-    }
     try {
+      const bucket: "brand-logos" | "brand-banners" = type === "logo" ? "brand-logos" : "brand-banners";
       const folder = type === "logo" ? "logos" : "banners";
-      const fileName = `${Date.now()}-${file.name.replace(/\s+/g, "-")}`;
-      const path = `${folder}/${fileName}`;
-
-      const { error } = await supabase.storage
-        .from("brand-assets")
-        .upload(path, file);
-
-      if (error) throw error;
-
-      const { data: publicUrl } = supabase.storage
-        .from("brand-assets")
-        .getPublicUrl(path);
+      const publicUrl = await uploadAdminImage(file, bucket, folder);
 
       if (type === "logo") {
-        setLogoUrl(publicUrl.publicUrl);
-        setLogoPreview(publicUrl.publicUrl);
+        setLogoUrl(publicUrl);
+        setLogoPreview(publicUrl);
       } else {
-        setBannerUrl(publicUrl.publicUrl);
-        setBannerPreview(publicUrl.publicUrl);
+        setBannerUrl(publicUrl);
+        setBannerPreview(publicUrl);
       }
 
       setMessage({ text: `${type === "logo" ? "Logo" : "Banner"} uploaded successfully!`, type: "success" });
@@ -253,7 +238,7 @@ export default function EditBrandPage() {
                 placeholder="Select Category"
               >
                 {categories.map((cat) => (
-                  <AdminSelectOption optionKey={`cat-${cat.id}`} value={cat.id}>
+                  <AdminSelectOption key={`cat-${cat.id}`} optionKey={`cat-${cat.id}`} value={cat.id}>
                     {cat.name}
                   </AdminSelectOption>
                 ))}
@@ -303,11 +288,10 @@ export default function EditBrandPage() {
           
           {logoPreview && (
             <div className="relative w-full h-32 bg-black border border-white/10 rounded-lg overflow-hidden">
-              <Image
+              <img
                 src={logoPreview}
                 alt="Brand Logo"
-                fill
-                className="object-contain p-4"
+                className="w-full h-full object-contain p-4"
               />
               <button
                 type="button"
@@ -354,11 +338,10 @@ export default function EditBrandPage() {
 
           {bannerPreview && (
             <div className="relative w-full h-40 bg-black border border-white/10 rounded-lg overflow-hidden">
-              <Image
+              <img
                 src={bannerPreview}
                 alt="Brand Banner"
-                fill
-                className="object-cover"
+                className="w-full h-full object-cover"
               />
               <button
                 type="button"

@@ -2,13 +2,12 @@
 
 import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
+import { uploadAdminImage } from "@/lib/imageUpload";
 import { addCategory } from "@/lib/catalogStore";
 import { useCatalog } from "@/context/CatalogContext";
 import AdminSelect, { AdminSelectOption } from "@/components/AdminSelect";
 import { ArrowLeft, Upload, Loader, AlertCircle, CheckCircle } from "lucide-react";
 import Link from "next/link";
-import Image from "next/image";
 
 export default function AddCategoryPage() {
   const router = useRouter();
@@ -42,26 +41,12 @@ export default function AddCategoryPage() {
       return;
     }
 
-    if (!supabase) {
-      setMessage({ text: "Image upload requires Supabase configuration", type: "error" });
-      return;
-    }
     setUploading(true);
     try {
-      const fileName = `${Date.now()}-${file.name.replace(/\s+/g, "-")}`;
-      const { error } = await supabase.storage
-        .from("category-images")
-        .upload(`categories/${fileName}`, file);
-
-      if (error) throw error;
-
-      const { data: publicUrl } = supabase.storage
-        .from("category-images")
-        .getPublicUrl(`categories/${fileName}`);
-
-      setFormData(prev => ({ ...prev, imageUrl: publicUrl.publicUrl }));
-      setImagePreview(publicUrl.publicUrl);
-      setMessage({ text: "Image uploaded successfully!", type: "success" });
+      const publicUrl = await uploadAdminImage(file, "category-images", "categories");
+      setFormData(prev => ({ ...prev, imageUrl: publicUrl }));
+      setImagePreview(publicUrl);
+      setMessage({ text: "✓ Image uploaded successfully!", type: "success" });
       setTimeout(() => setMessage({ text: "", type: "" }), 3000);
     } catch (error) {
       setMessage({ text: `Upload failed: ${error instanceof Error ? error.message : "Unknown error"}`, type: "error" });
@@ -210,11 +195,10 @@ export default function AddCategoryPage() {
 
           {imagePreview && (
             <div className="relative w-full h-40 bg-black border border-white/10 rounded-lg overflow-hidden">
-              <Image
+              <img
                 src={imagePreview}
                 alt="Preview"
-                fill
-                className="object-cover"
+                className="w-full h-full object-cover"
               />
             </div>
           )}
