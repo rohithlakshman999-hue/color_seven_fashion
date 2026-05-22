@@ -216,6 +216,12 @@ export default function EditProductPage({
     setSizes(sizes.filter((s) => s !== size));
   };
 
+  const normalizePrice = (value: string) => {
+    const cleaned = value.trim().replace(/[^\\d.]/g, "");
+    const parsed = Number(cleaned);
+    return Number.isFinite(parsed) ? Math.round(parsed) : 0;
+  };
+
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     const validImages = images.map((i) => i.trim()).filter(Boolean);
@@ -225,7 +231,7 @@ export default function EditProductPage({
     updateProduct(id, {
       name: name.trim(),
       brand: finalBrand || "Colour Seven",
-      price: Math.round(Number(price)),
+      price: normalizePrice(price),
       category,
       images: validImages,
       description: description.trim(),

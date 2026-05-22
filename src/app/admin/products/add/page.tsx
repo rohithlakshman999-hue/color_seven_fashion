@@ -187,6 +187,12 @@ export default function AddProductPage() {
     }));
   };
 
+  const normalizePriceValue = (value: string) => {
+    const cleaned = value.trim().replace(/[^\d.]/g, "");
+    const parsed = Number(cleaned);
+    return Number.isFinite(parsed) ? Math.round(parsed) : 0;
+  };
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     
@@ -205,7 +211,7 @@ export default function AddProductPage() {
     setSaving(true);
     try {
       const validImages = imageUrls.filter((url) => url.trim() !== "");
-      const price = parseFloat(formData.price) || 0;
+      const price = normalizePriceValue(formData.price);
 
       await addProduct({
         name: formData.name.trim(),
