@@ -77,18 +77,7 @@ export function ProductProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  useEffect(() => {
-    const onStorage = (e: StorageEvent) => {
-      if (
-        e.key?.startsWith("colour_seven_products") ||
-        e.key === "colour_seven_products_customized"
-      ) {
-        void refresh();
-      }
-    };
-    window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
-  }, [refresh]);
+
 
   const addProduct = useCallback(async (product: Omit<Product, "id">) => {
     const created = await storeAddProduct(product);
