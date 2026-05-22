@@ -71,6 +71,7 @@ export default function EditProductPage({
   const [isNew, setIsNew] = useState(false);
   const [isTrending, setIsTrending] = useState(false);
   const [uploadingImages, setUploadingImages] = useState<boolean[]>([]);
+  const [message, setMessage] = useState<null | { type: "error" | "success"; text: string }>(null);
   const initialLoadDone = useRef(false);
 
   useEffect(() => {
@@ -217,21 +218,37 @@ export default function EditProductPage({
   };
 
   const normalizePrice = (value: string) => {
-    const cleaned = value.trim().replace(/[^\\d.]/g, "");
+    const cleaned = value.trim().replace(/[^\d.]/g, "");
     const parsed = Number(cleaned);
     return Number.isFinite(parsed) ? Math.round(parsed) : 0;
   };
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
+    setMessage(null);
     const validImages = images.map((i) => i.trim()).filter(Boolean);
-    if (!name.trim() || !price || validImages.length === 0) return;
+    const normalizedPrice = normalizePrice(price);
+
+    if (!name.trim()) {
+      setMessage({ type: "error", text: "Product name is required." });
+      return;
+    }
+
+    if (!price.trim() || normalizedPrice <= 0) {
+      setMessage({ type: "error", text: "Enter a valid price greater than 0." });
+      return;
+    }
+
+    if (validImages.length === 0) {
+      setMessage({ type: "error", text: "Add at least one product image before saving." });
+      return;
+    }
 
     const finalBrand = isCustomBrand ? customBrand.trim() : brand.trim();
     updateProduct(id, {
       name: name.trim(),
       brand: finalBrand || "Colour Seven",
-      price: normalizePrice(price),
+      price: normalizedPrice,
       category,
       images: validImages,
       description: description.trim(),
@@ -611,6 +628,18 @@ export default function EditProductPage({
           </div>
           <span className="text-sm text-zinc-300">Display on Trending List on Homepage</span>
         </label>
+
+        {message && (
+          <div
+            className={`rounded-2xl p-4 text-sm font-medium ${
+              message.type === "error"
+                ? "bg-red-500/10 text-red-300 border border-red-500/20"
+                : "bg-emerald-500/10 text-emerald-300 border border-emerald-500/20"
+            }`}
+          >
+            {message.text}
+          </div>
+        )}
 
         {/* Submit */}
         <button
