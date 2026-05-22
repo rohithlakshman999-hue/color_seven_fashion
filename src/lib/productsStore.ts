@@ -9,11 +9,52 @@ const PRODUCTS_CUSTOMIZED_KEY = "colour_seven_products_customized";
 
 let memoryCache: Product[] | null = null;
 
+function markProductsCustomized() {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(PRODUCTS_CUSTOMIZED_KEY, "1");
+}
+
+function isProductsCustomized(): boolean {
+  if (typeof window === "undefined") return false;
+  return localStorage.getItem(PRODUCTS_CUSTOMIZED_KEY) === "1";
+}
+
+function readLocalProducts(): Product[] | null {
+  if (typeof window === "undefined") return null;
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (raw === null) return null;
+  try {
+    const parsed = JSON.parse(raw) as Product[];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return null;
+  }
+}
+
+function writeLocalProducts(products: Product[]) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(products));
+  memoryCache = products;
+}
+
 function buildDefaultProducts(): Product[] {
   return defaultProducts.map((p) => ({
     ...p,
     brand: p.brand || "Colour Seven",
   }));
+}
+
+function loadLocalProducts(): Product[] {
+  if (memoryCache) return memoryCache;
+
+  const stored = readLocalProducts();
+  if (stored !== null) {
+    memoryCache = stored;
+    return stored;
+  }
+
+  memoryCache = [];
+  return [];
 }
 
 async function fetchRemoteProducts(): Promise<Product[] | null> {
@@ -92,144 +133,67 @@ async function fetchRemoteProducts(): Promise<Product[] | null> {
   });
 }
 
-async function migrateLocalProductsToSupabase() {
-  if (typeof window === "undefined" || !supabase) return;
-  const wasMigrated = localStorage.getItem("colour_seven_products_migrated");
-  if (wasMigrated === "1") return;
-
-  const customized = localStorage.getItem(PRODUCTS_CUSTOMIZED_KEY) === "1";
-  if (!customized) return;
-
-  const rawLocal = localStorage.getItem(STORAGE_KEY);
-  if (!rawLocal) return;
-
-  try {
-    const localProducts = JSON.parse(rawLocal) as Product[];
-    if (!Array.isArray(localProducts) || localProducts.length === 0) return;
-
-    // Fetch remote products to see what's already there
-    const remoteProducts = await fetchRemoteProducts();
-    if (remoteProducts === null) {
-      console.warn("Could not fetch remote products; skipping migration for now.");
-      return;
-    }
-    const remoteNames = new Set(remoteProducts.map((p) => p.name.toLowerCase().trim()));
-
-    const catalog = await loadCatalog();
-
-    for (const lp of localProducts) {
-      if (remoteNames.has(lp.name.toLowerCase().trim())) {
-        continue;
-      }
-
-      const category = catalog.categories.find(
-        (c) => slugToProductCategory(c.slug) === lp.category
-      );
-      const brand = catalog.brands.find(
-        (b) => b.name === lp.brand && b.category_id === category?.slug
-      );
-
-      if (category && brand) {
-        const { data: catRow } = await supabase
-          .from("categories")
-          .select("id")
-          .eq("slug", category.slug)
-          .maybeSingle();
-        const { data: brandRow } = await supabase
-          .from("brands")
-          .select("id")
-          .eq("slug", brand.slug)
-          .maybeSingle();
-
-        if (catRow?.id && brandRow?.id) {
-          const slug = lp.name.toLowerCase().replace(/\s+/g, "-");
-          const { data, error } = await supabase
-            .from("products")
-            .insert({
-              category_id: catRow.id,
-              brand_id: brandRow.id,
-              name: lp.name,
-              slug: `${slug}-${Date.now()}`,
-              short_description: lp.description.slice(0, 200),
-              full_description: lp.description,
-              sku: `SKU-${Date.now()}-${Math.random().toString(36).slice(2, 5)}`,
-              original_price: lp.price,
-              discount_price: lp.price,
-              featured: lp.isNew,
-              tags: lp.isTrending ? ["trending"] : [],
-              is_active: true,
-            })
-            .select("id")
-            .single();
-
-          if (!error && data?.id) {
-            if (lp.images && lp.images.length > 0) {
-              const imageInserts = lp.images.map((imgUrl, index) => ({
-                product_id: data.id,
-                image_url: imgUrl,
-                display_order: index,
-                is_main: index === 0,
-              }));
-              await supabase.from("product_images").insert(imageInserts);
-            }
-
-            const variantInserts: any[] = [];
-            let variantIndex = 0;
-            const sizesToInsert = lp.sizes && lp.sizes.length > 0 ? lp.sizes : ["One Size"];
-            const colorsToInsert = lp.colors && lp.colors.length > 0 ? lp.colors : ["Default"];
-
-            for (const s of sizesToInsert) {
-              for (const c of colorsToInsert) {
-                variantInserts.push({
-                  product_id: data.id,
-                  size: s,
-                  color: c,
-                  sku: `SKU-${data.id}-${variantIndex++}-${Math.random().toString(36).slice(2, 5)}`,
-                  stock_quantity: 10,
-                  stock_status: "in_stock",
-                });
-              }
-            }
-
-            if (variantInserts.length > 0) {
-              await supabase.from("product_variants").insert(variantInserts);
-            }
-          }
-        }
-      }
-    }
-
-    localStorage.setItem("colour_seven_products_migrated", "1");
-  } catch (err) {
-    console.error("Migration of local products failed:", err);
-  }
-}
-
 export async function loadProducts(force = false): Promise<Product[]> {
   if (memoryCache && !force) return memoryCache;
 
-  if (isSupabaseConfigured && supabase) {
+  let productsList: Product[] | null = null;
+
+  if (isSupabaseConfigured) {
     try {
-      await migrateLocalProductsToSupabase();
       const remote = await fetchRemoteProducts();
       if (remote !== null) {
-        memoryCache = remote;
-        return remote;
+        productsList = remote;
       }
     } catch (error) {
-      console.error("Failed to load from Supabase:", error);
+      console.error("Failed to load from Supabase, falling back to local:", error);
     }
   }
 
-  if (memoryCache) return memoryCache;
+  if (productsList !== null) {
+    // If we have remote products and some local customization exists, merge them!
+    if (isProductsCustomized()) {
+      const local = readLocalProducts() || [];
+      const localMap = new Map(local.map((p) => [p.id, p]));
+      const merged: Product[] = [];
 
-  const defaults = buildDefaultProducts();
-  memoryCache = defaults;
-  return defaults;
+      // 1. Process remote products
+      for (const r of productsList) {
+        if (localMap.has(r.id)) {
+          // Product exists locally, use the local version (which has updates)
+          merged.push(localMap.get(r.id)!);
+        } else {
+          // Product does not exist locally. Since isProductsCustomized() is true,
+          // it means the product was deleted locally. So we skip it (delete it).
+        }
+      }
+
+      // 2. Add local products that aren't in remote (e.g. newly created products that failed to sync)
+      const remoteIds = new Set(productsList.map((p) => p.id));
+      for (const l of local) {
+        if (!remoteIds.has(l.id)) {
+          merged.push(l);
+        }
+      }
+
+      memoryCache = merged;
+      writeLocalProducts(merged);
+      return merged;
+    } else {
+      // If there are no customizations yet, save the remote products to local storage and return them
+      memoryCache = productsList;
+      writeLocalProducts(productsList);
+      return productsList;
+    }
+  }
+
+  // Fallback to local storage
+  const local = loadLocalProducts();
+  memoryCache = local;
+  return local;
 }
 
 export function getProductsSync(): Product[] {
-  return memoryCache || [];
+  return loadLocalProducts();
 }
 
 export function invalidateProductsCache() {
@@ -247,6 +211,7 @@ export async function addProduct(product: Omit<Product, "id">): Promise<Product>
     id: `${Date.now()}${Math.random().toString(36).slice(2, 9)}`,
   };
 
+  // Try to save to Supabase if configured
   if (supabase) {
     try {
       const catalog = await loadCatalog();
@@ -290,14 +255,10 @@ export async function addProduct(product: Omit<Product, "id">): Promise<Product>
             .select("id")
             .single();
 
-          if (error) {
-            console.error("Supabase insert product failed:", error);
-            throw error;
-          }
-
-          if (data?.id) {
+          if (!error && data?.id) {
             newProduct.id = String(data.id);
             
+            // Insert all product images
             if (product.images && product.images.length > 0) {
               const imageInserts = product.images.map((imgUrl, index) => ({
                 product_id: data.id,
@@ -308,6 +269,7 @@ export async function addProduct(product: Omit<Product, "id">): Promise<Product>
               await supabase.from("product_images").insert(imageInserts);
             }
 
+            // Insert color and size combinations into product_variants
             const variantInserts: any[] = [];
             let variantIndex = 0;
             const sizesToInsert = product.sizes && product.sizes.length > 0 ? product.sizes : ["One Size"];
@@ -330,27 +292,21 @@ export async function addProduct(product: Omit<Product, "id">): Promise<Product>
               await supabase.from("product_variants").insert(variantInserts);
             }
 
-            const remote = await fetchRemoteProducts();
-            if (remote) {
-              memoryCache = remote;
-              const updatedProduct = remote.find((p) => p.id === newProduct.id);
-              if (updatedProduct) {
-                return updatedProduct;
-              }
-            }
+            await refreshProducts();
+            markProductsCustomized();
             return newProduct;
           }
         }
       }
     } catch (error) {
-      console.error("Failed to save to Supabase:", error);
-      throw error;
+      console.error("Failed to save to Supabase, falling back to local:", error);
     }
   }
 
-  const list = memoryCache || buildDefaultProducts();
-  const updatedList = [...list, newProduct];
-  memoryCache = updatedList;
+  // Fallback to localStorage
+  const list = loadLocalProducts();
+  markProductsCustomized();
+  writeLocalProducts([...list, newProduct]);
   return newProduct;
 }
 
@@ -358,6 +314,14 @@ export async function updateProduct(
   id: string,
   updates: Partial<Product>
 ): Promise<void> {
+  // Always update localStorage first so the UI updates immediately
+  const list = loadLocalProducts();
+  markProductsCustomized();
+  writeLocalProducts(
+    list.map((p) => (p.id === id ? { ...p, ...updates } : p))
+  );
+
+  // Also try to update in Supabase if configured
   if (supabase) {
     try {
       const payload: Record<string, unknown> = {};
@@ -378,11 +342,11 @@ export async function updateProduct(
       if (Object.keys(payload).length > 0) {
         const { error } = await supabase.from("products").update(payload).eq("id", id);
         if (error) {
-          console.error("Supabase update failed:", error.message);
-          throw error;
+          console.warn("Supabase update failed (RLS?):", error.message);
         }
       }
 
+      // Sync images if updated
       if (updates.images !== undefined) {
         await supabase.from("product_images").delete().eq("product_id", id);
         if (updates.images.length > 0) {
@@ -396,8 +360,9 @@ export async function updateProduct(
         }
       }
 
+      // Sync variants if sizes or colors updated
       if (updates.sizes !== undefined || updates.colors !== undefined) {
-        const existing = (memoryCache || []).find((p) => p.id === id);
+        const existing = list.find((p) => p.id === id);
         const sizesToInsert = updates.sizes !== undefined ? updates.sizes : (existing?.sizes || ["One Size"]);
         const colorsToInsert = updates.colors !== undefined ? updates.colors : (existing?.colors || ["Default"]);
 
@@ -425,41 +390,29 @@ export async function updateProduct(
         }
       }
 
-      const remote = await fetchRemoteProducts();
-      if (remote) {
-        memoryCache = remote;
-        return;
-      }
+      await refreshProducts();
     } catch (error) {
-      console.error("Failed to update in Supabase:", error);
-      throw error;
+      console.warn("Failed to update in Supabase:", error);
     }
   }
-
-  const list = memoryCache || buildDefaultProducts();
-  memoryCache = list.map((p) => (p.id === id ? { ...p, ...updates } : p));
 }
 
 export async function deleteProduct(id: string): Promise<void> {
+  // Always remove from localStorage first so the UI updates immediately
+  const list = loadLocalProducts();
+  markProductsCustomized();
+  writeLocalProducts(list.filter((p) => p.id !== id));
+
+  // Also try to delete from Supabase if configured
   if (supabase) {
     try {
       const { error } = await supabase.from("products").delete().eq("id", id);
       if (error) {
-        console.error("Supabase delete failed:", error.message);
-        throw error;
+        console.warn("Supabase delete failed (RLS?):", error.message);
       }
-      const remote = await fetchRemoteProducts();
-      if (remote) {
-        memoryCache = remote;
-        return;
-      }
+      await refreshProducts();
     } catch (error) {
-      console.error("Failed to delete from Supabase:", error);
-      throw error;
+      console.warn("Failed to delete from Supabase:", error);
     }
   }
-
-  const list = memoryCache || buildDefaultProducts();
-  memoryCache = list.filter((p) => p.id !== id);
 }
-

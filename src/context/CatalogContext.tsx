@@ -70,7 +70,19 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
     };
   }, [applyCatalog]);
 
-
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (
+        e.key?.startsWith("colour_seven_categories") ||
+        e.key?.startsWith("colour_seven_brands") ||
+        e.key === "colour_seven_catalog_customized"
+      ) {
+        void refresh();
+      }
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, [refresh]);
 
   const value = useMemo(
     () => ({
