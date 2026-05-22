@@ -85,7 +85,7 @@ export default function Footer() {
         </div>
 
         <div className="border-t border-white/10 pt-8 flex flex-col md:flex-row justify-between items-center text-xs text-zinc-500">
-          <p>&copy; {new Date().getFullYear()} OUTLAW STYLING STORE. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} COLOUR SEVEN FASHION. All rights reserved.</p>
           <div className="flex space-x-6 mt-4 md:mt-0">
             <Link href="/privacy" className="hover:text-white transition-luxury">Privacy Policy</Link>
             <Link href="/terms" className="hover:text-white transition-luxury">Terms of Service</Link>

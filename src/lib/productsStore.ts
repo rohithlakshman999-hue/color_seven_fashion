@@ -99,7 +99,7 @@ async function fetchRemoteProducts(): Promise<Product[] | null> {
       id: String(r.id),
       name: String(r.name),
       brand: brandObj?.name || "Colour Seven",
-      price: Number(r.discount_price) || Number(r.original_price) || 0,
+      price: Math.round(Number(r.discount_price) || Number(r.original_price) || 0),
       category: slugToProductCategory(slug),
       images: ["/images/chrono_watch.png"],
       description: String(r.full_description || r.short_description || ""),
@@ -113,24 +113,67 @@ async function fetchRemoteProducts(): Promise<Product[] | null> {
 export async function loadProducts(force = false): Promise<Product[]> {
   if (memoryCache && !force) return memoryCache;
 
+  let productsList: Product[] | null = null;
+
   if (isSupabaseConfigured) {
-    const remote = await fetchRemoteProducts();
-    if (remote !== null) {
-      if (remote.length > 0) {
-        writeLocalProducts(remote);
-        return remote;
+    try {
+      const remote = await fetchRemoteProducts();
+      if (remote !== null) {
+        productsList = remote;
       }
-      invalidateProductsCache();
-      const local = loadLocalProducts();
-      if (isProductsCustomized() || local.length > 0) {
-        return local;
-      }
-      writeLocalProducts(remote);
-      return remote;
+    } catch (error) {
+      console.error("Failed to load from Supabase, falling back to local:", error);
     }
   }
 
-  return loadLocalProducts();
+  if (productsList !== null) {
+    // If we have remote products and some local customization exists, merge them!
+    if (isProductsCustomized()) {
+      const local = readLocalProducts() || [];
+      const localMap = new Map(local.map((p) => [p.id, p]));
+      const merged: Product[] = [];
+
+      // 1. Process remote products
+      for (const r of productsList) {
+        if (localMap.has(r.id)) {
+          // Product exists locally, use the local version (which has updates)
+          merged.push(localMap.get(r.id)!);
+        } else {
+          // Product does not exist locally. Since isProductsCustomized() is true,
+          // it means the product was deleted locally. So we skip it (delete it).
+        }
+      }
+
+      // 2. Add local products that aren't in remote (e.g. newly created products that failed to sync)
+      const remoteIds = new Set(productsList.map((p) => p.id));
+      for (const l of local) {
+        if (!remoteIds.has(l.id)) {
+          merged.push(l);
+        }
+      }
+
+      memoryCache = merged;
+      writeLocalProducts(merged);
+      return merged;
+    } else {
+      // If there are no customizations yet, save the remote products to local storage and return them
+      memoryCache = productsList;
+      writeLocalProducts(productsList);
+      return productsList;
+    }
+  }
+
+  // Fallback to local storage or default products
+  const local = loadLocalProducts();
+  if (local.length > 0) {
+    memoryCache = local;
+    return local;
+  }
+
+  // Final fallback to default products
+  const defaults = buildDefaultProducts();
+  memoryCache = defaults;
+  return defaults;
 }
 
 export function getProductsSync(): Product[] {
@@ -152,65 +195,71 @@ export async function addProduct(product: Omit<Product, "id">): Promise<Product>
     id: `${Date.now()}${Math.random().toString(36).slice(2, 9)}`,
   };
 
+  // Try to save to Supabase if configured
   if (supabase) {
-    const catalog = await loadCatalog();
-    const category = catalog.categories.find(
-      (c) => slugToProductCategory(c.slug) === product.category
-    );
-    const brand = catalog.brands.find(
-      (b) => b.name === product.brand && b.category_id === category?.slug
-    );
+    try {
+      const catalog = await loadCatalog();
+      const category = catalog.categories.find(
+        (c) => slugToProductCategory(c.slug) === product.category
+      );
+      const brand = catalog.brands.find(
+        (b) => b.name === product.brand && b.category_id === category?.slug
+      );
 
-    if (category && brand) {
-      const { data: catRow } = await supabase
-        .from("categories")
-        .select("id")
-        .eq("slug", category.slug)
-        .maybeSingle();
-      const { data: brandRow } = await supabase
-        .from("brands")
-        .select("id")
-        .eq("slug", brand.slug)
-        .maybeSingle();
-
-      if (catRow?.id && brandRow?.id) {
-        const slug = product.name.toLowerCase().replace(/\s+/g, "-");
-        const { data, error } = await supabase
-          .from("products")
-          .insert({
-            category_id: catRow.id,
-            brand_id: brandRow.id,
-            name: product.name,
-            slug: `${slug}-${Date.now()}`,
-            short_description: product.description.slice(0, 200),
-            full_description: product.description,
-            sku: `SKU-${Date.now()}`,
-            original_price: product.price,
-            discount_price: product.price,
-            featured: product.isNew,
-            is_active: true,
-          })
+      if (category && brand) {
+        const { data: catRow } = await supabase
+          .from("categories")
           .select("id")
-          .single();
+          .eq("slug", category.slug)
+          .maybeSingle();
+        const { data: brandRow } = await supabase
+          .from("brands")
+          .select("id")
+          .eq("slug", brand.slug)
+          .maybeSingle();
 
-        if (!error && data?.id) {
-          newProduct.id = String(data.id);
-          if (product.images[0]) {
-            await supabase.from("product_images").insert({
-              product_id: data.id,
-              image_url: product.images[0],
-              display_order: 0,
-              is_main: true,
-            });
+        if (catRow?.id && brandRow?.id) {
+          const slug = product.name.toLowerCase().replace(/\s+/g, "-");
+          const { data, error } = await supabase
+            .from("products")
+            .insert({
+              category_id: catRow.id,
+              brand_id: brandRow.id,
+              name: product.name,
+              slug: `${slug}-${Date.now()}`,
+              short_description: product.description.slice(0, 200),
+              full_description: product.description,
+              sku: `SKU-${Date.now()}`,
+              original_price: product.price,
+              discount_price: product.price,
+              featured: product.isNew,
+              is_active: true,
+            })
+            .select("id")
+            .single();
+
+          if (!error && data?.id) {
+            newProduct.id = String(data.id);
+            if (product.images[0]) {
+              await supabase.from("product_images").insert({
+                product_id: data.id,
+                image_url: product.images[0],
+                display_order: 0,
+                is_main: true,
+              });
+            }
+            await refreshProducts();
+            markProductsCustomized();
+            return newProduct;
           }
-          await refreshProducts();
-          markProductsCustomized();
-          return newProduct;
         }
       }
+    } catch (error) {
+      console.error("Failed to save to Supabase, falling back to local:", error);
     }
   }
 
+  // Fallback to localStorage
   const list = loadLocalProducts();
   markProductsCustomized();
   writeLocalProducts([...list, newProduct]);
@@ -221,45 +270,55 @@ export async function updateProduct(
   id: string,
   updates: Partial<Product>
 ): Promise<void> {
-  if (supabase) {
-    const payload: Record<string, unknown> = {};
-    if (updates.name !== undefined) payload.name = updates.name;
-    if (updates.price !== undefined) {
-      payload.discount_price = updates.price;
-      payload.original_price = updates.price;
-    }
-    if (updates.description !== undefined) {
-      payload.full_description = updates.description;
-      payload.short_description = updates.description.slice(0, 200);
-    }
-    if (updates.isNew !== undefined) payload.featured = updates.isNew;
-
-    if (Object.keys(payload).length > 0) {
-      const { error } = await supabase.from("products").update(payload).eq("id", id);
-      if (error) throw error;
-    }
-    await refreshProducts();
-    markProductsCustomized();
-    return;
-  }
-
+  // Always update localStorage first so the UI updates immediately
   const list = loadLocalProducts();
   markProductsCustomized();
   writeLocalProducts(
     list.map((p) => (p.id === id ? { ...p, ...updates } : p))
   );
+
+  // Also try to update in Supabase if configured
+  if (supabase) {
+    try {
+      const payload: Record<string, unknown> = {};
+      if (updates.name !== undefined) payload.name = updates.name;
+      if (updates.price !== undefined) {
+        payload.discount_price = updates.price;
+        payload.original_price = updates.price;
+      }
+      if (updates.description !== undefined) {
+        payload.full_description = updates.description;
+        payload.short_description = updates.description.slice(0, 200);
+      }
+      if (updates.isNew !== undefined) payload.featured = updates.isNew;
+
+      if (Object.keys(payload).length > 0) {
+        const { error } = await supabase.from("products").update(payload).eq("id", id);
+        if (error) {
+          console.warn("Supabase update failed (RLS?):", error.message);
+        }
+      }
+    } catch (error) {
+      console.warn("Failed to update in Supabase:", error);
+    }
+  }
 }
 
 export async function deleteProduct(id: string): Promise<void> {
-  if (supabase) {
-    const { error } = await supabase.from("products").delete().eq("id", id);
-    if (error) throw error;
-    await refreshProducts();
-    markProductsCustomized();
-    return;
-  }
-
+  // Always remove from localStorage first so the UI updates immediately
   const list = loadLocalProducts();
   markProductsCustomized();
   writeLocalProducts(list.filter((p) => p.id !== id));
+
+  // Also try to delete from Supabase if configured
+  if (supabase) {
+    try {
+      const { error } = await supabase.from("products").delete().eq("id", id);
+      if (error) {
+        console.warn("Supabase delete failed (RLS?):", error.message);
+      }
+    } catch (error) {
+      console.warn("Failed to delete from Supabase:", error);
+    }
+  }
 }

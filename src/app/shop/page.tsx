@@ -1,9 +1,11 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowRight } from "lucide-react";import { useProducts } from "@/context/ProductContext";
+import { ArrowRight } from "lucide-react";
+import { useProducts } from "@/context/ProductContext";
 
 const categories = [
   {
@@ -42,6 +44,11 @@ const categories = [
 
 export default function Shop() {
   const { products } = useProducts();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const getProductCount = (categoryName: string) => {
     return products.filter((p) => p.category === categoryName).length;
@@ -138,7 +145,7 @@ export default function Shop() {
 
                   {/* Product count badge */}
                   <div className="absolute top-5 right-5 bg-black/60 border border-white/10 backdrop-blur-sm text-white text-[10px] font-black tracking-widest uppercase px-3 py-1.5 rounded-full">
-                    {getProductCount(cat.name)} Items
+                    {mounted ? getProductCount(cat.name) : 0} Items
                   </div>
                 </div>
 

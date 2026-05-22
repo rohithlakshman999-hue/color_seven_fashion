@@ -143,3 +143,61 @@ export interface Cart {
   quantity: number;
   created_at: string;
 }
+
+export interface HomepageContent {
+  id: string;
+  section_name: string;
+  content: Record<string, unknown>;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SiteSettings {
+  id: string;
+  setting_key: string;
+  setting_value: Record<string, unknown>;
+  description: string;
+  updated_at: string;
+  updated_by: string;
+}
+
+export interface ContactInfo {
+  id: string;
+  whatsapp_number: string;
+  phone_number: string;
+  email: string;
+  address: string;
+  city: string;
+  state: string;
+  postal_code: string;
+  country: string;
+  social_media: Record<string, unknown>;
+  business_hours: Record<string, unknown>;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Collection {
+  id: string;
+  name: string;
+  slug: string;
+  title: string;
+  description: string;
+  banner_image: string;
+  featured_image: string;
+  display_order: number;
+  is_active: boolean;
+  is_featured: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CollectionProduct {
+  id: string;
+  collection_id: string;
+  product_id: string;
+  display_order: number;
+  created_at: string;
+}

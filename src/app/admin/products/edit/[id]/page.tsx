@@ -22,8 +22,8 @@ export default function EditProductPage({
 }) {
   const { id } = use(params);
   const router = useRouter();
-  const { getProductById, updateProduct } = useProducts();
-  const { brands: catalogBrands } = useCatalog();
+  const { getProductById, updateProduct, loaded: productsLoaded } = useProducts();
+  const { brands: catalogBrands, loading: catalogLoading } = useCatalog();
 
   const [loaded, setLoaded] = useState(false);
   const [notFound, setNotFound] = useState(false);
@@ -44,6 +44,8 @@ export default function EditProductPage({
   const initialLoadDone = useRef(false);
 
   useEffect(() => {
+    if (!productsLoaded || catalogLoading) return;
+
     const product = getProductById(id);
     if (!product) {
       setNotFound(true);
@@ -76,7 +78,7 @@ export default function EditProductPage({
     setIsNew(product.isNew);
     setLoaded(true);
     initialLoadDone.current = true;
-  }, [id, getProductById, catalogBrands]);
+  }, [id, getProductById, catalogBrands, productsLoaded, catalogLoading]);
 
   const brandsForCategory = getBrandsForProductCategory(
     category,
@@ -140,7 +142,7 @@ export default function EditProductPage({
     updateProduct(id, {
       name: name.trim(),
       brand: finalBrand || "Colour Seven",
-      price: Number(price),
+      price: Math.round(Number(price)),
       category,
       images: validImages,
       description: description.trim(),
@@ -237,6 +239,7 @@ export default function EditProductPage({
               >
                 {brandsForCategory.map((b) => (
                   <AdminSelectOption
+                    key={brandOptionKey(b)}
                     optionKey={brandOptionKey(b)}
                     value={b.name}
                   >
@@ -297,7 +300,7 @@ export default function EditProductPage({
             }}
           >
             {PRODUCT_CATEGORIES.map((cat) => (
-              <AdminSelectOption optionKey={`cat-${cat}`} value={cat}>
+              <AdminSelectOption key={`cat-${cat}`} optionKey={`cat-${cat}`} value={cat}>
                 {cat}
               </AdminSelectOption>
             ))}

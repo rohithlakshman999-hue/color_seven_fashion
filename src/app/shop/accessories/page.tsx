@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
@@ -9,6 +10,12 @@ import { ArrowLeft, Gem } from "lucide-react";
 
 export default function AccessoriesPage() {
   const { products } = useProducts();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const catProducts = products.filter((p) => p.category === "Accessories");
 
   return (
@@ -31,7 +38,7 @@ export default function AccessoriesPage() {
             </div>
             <h1 className="font-serif text-5xl md:text-7xl uppercase tracking-widest skew-x-[-6deg]">ACCESSORIES</h1>
             <div className="h-[2px] w-16 bg-[#CFF227] mx-auto mt-4 rounded-full" />
-            <p className="text-zinc-500 text-xs tracking-[0.25em] uppercase font-bold mt-4">OUTLAW STYLING — {catProducts.length} ITEMS</p>
+            <p className="text-zinc-500 text-xs tracking-[0.25em] uppercase font-bold mt-4">OUTLAW STYLING — {mounted ? catProducts.length : 0} ITEMS</p>
           </motion.div>
         </div>
       </div>
@@ -43,7 +50,7 @@ export default function AccessoriesPage() {
         </Link>
 
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {catProducts.map((product, i) => (
+          {mounted && catProducts.map((product, i) => (
             <motion.div
               key={product.id}
               initial={{ opacity: 0, y: 30 }}

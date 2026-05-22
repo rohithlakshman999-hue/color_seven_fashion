@@ -24,7 +24,7 @@ const aboutSections = [
     id: "a3",
     title: "Community",
     subtitle: "03 / Culture",
-    description: "Built for the culture. Outlaw isn't just a brand, it's a movement of authentic self-expression. Designed for those who lead, not follow. We empower individuals to embrace their unique styling identity.",
+    description: "Built for the culture. Colour Seven isn't just a brand, it's a movement of authentic self-expression. Designed for those who lead, not follow. We empower individuals to embrace their unique styling identity.",
     image: "/images/graphic_tee.png"
   }
 ];
@@ -38,10 +38,10 @@ export default function About() {
         <div className="container mx-auto px-4 md:px-8 text-center relative z-10">
           <h1 className="text-3xl md:text-5xl font-black tracking-widest uppercase mb-4 flex items-center justify-center gap-2">
             <Zap className="w-6 h-6 text-[var(--accent-1)]" />
-            THE OUTLAW ETHOS
+            THE COLOUR SEVEN ETHOS
           </h1>
           <p className="text-zinc-500 text-xs md:text-sm tracking-[0.25em] uppercase font-bold">
-            OUTLAW STYLING STORE &bull; BRAND ETHICS
+            COLOUR SEVEN FASHION &bull; BRAND ETHICS
           </p>
         </div>
       </div>
@@ -60,7 +60,7 @@ export default function About() {
               }`}
             >
               {/* Image Box */}
-              <div className="w-full lg:w-3/5 aspect-[4/3] relative overflow-hidden bg-zinc-950 group rounded-2xl border border-white/10 shadow-2xl">
+              <div className="w-full lg:w-3/5 aspect-[4/3] relative overflow-hidden bg-zinc-950 group rounded-2xl border border-white/10 shadow-2xl" style={{ position: "relative" }}>
                 <Image
                   src={section.image}
                   alt={section.title}

@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState, useMemo, memo } from "react";
+import { useState, useMemo, memo, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import ProductCard from "@/components/ProductCard";
 import { useProducts } from "@/context/ProductContext";
@@ -51,6 +51,11 @@ export default function WatchesPage() {
   const { brands } = useCatalog();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Filter products to just watches
   const watchesProducts = useMemo(() => {
@@ -126,7 +131,7 @@ export default function WatchesPage() {
             </h1>
             <div className="h-[2px] w-20 bg-[var(--accent-1)] mx-auto mt-4 rounded-full" />
             <p className="text-zinc-500 text-xs tracking-[0.25em] uppercase font-bold mt-4">
-              {watchesProducts.length} ITEMS AVAILABLE
+              {mounted ? watchesProducts.length : 0} ITEMS AVAILABLE
             </p>
           </motion.div>
         </div>
@@ -182,11 +187,11 @@ export default function WatchesPage() {
                 >
                   <span>All Brands</span>
                   <span className={selectedBrand === null ? "text-black/60" : "text-zinc-600"}>
-                    {watchesProducts.length}
+                    {mounted ? watchesProducts.length : 0}
                   </span>
                 </button>
 
-                {filteredBrandsList.map((b) => (
+                {mounted && filteredBrandsList.map((b) => (
                   <BrandListButton
                     key={`watches-${b.name}`}
                     name={b.name}
@@ -203,7 +208,11 @@ export default function WatchesPage() {
           <div className="lg:col-span-3 space-y-12">
             <AnimatePresence mode="wait">
               {/* Case 1: Store is completely empty */}
-              {watchesProducts.length === 0 ? (
+              {!mounted ? (
+                <div className="text-center py-16 bg-zinc-900/30 border border-white/5 rounded-2xl">
+                  <p className="text-zinc-500">Loading watches...</p>
+                </div>
+              ) : watchesProducts.length === 0 ? (
                 <motion.div
                   key="empty-store"
                   initial={{ opacity: 0 }}

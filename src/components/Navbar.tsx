@@ -47,7 +47,7 @@ export default function Navbar() {
             <span className="text-zinc-700">/</span>
             <span className="mx-6 text-white">10% INSTANT DISCOUNT ON FIRST ORDER</span>
             <span className="text-zinc-700">/</span>
-            <span className="mx-6 flex items-center gap-1.5"><Sparkles className="w-3 h-3" /> OUTLAW PREMIUM STREETWEAR EDITION</span>
+            <span className="mx-6 flex items-center gap-1.5"><Sparkles className="w-3 h-3" /> COLOUR SEVEN PREMIUM STREETWEAR EDITION</span>
             <span className="text-zinc-700">/</span>
           </div>
           <div className="animate-marquee-scroll2 whitespace-nowrap flex items-center shrink-0 absolute top-0 left-0">
@@ -55,7 +55,7 @@ export default function Navbar() {
             <span className="text-zinc-700">/</span>
             <span className="mx-6 text-white">10% INSTANT DISCOUNT ON FIRST ORDER</span>
             <span className="text-zinc-700">/</span>
-            <span className="mx-6 flex items-center gap-1.5"><Sparkles className="w-3 h-3" /> OUTLAW PREMIUM STREETWEAR EDITION</span>
+            <span className="mx-6 flex items-center gap-1.5"><Sparkles className="w-3 h-3" /> COLOUR SEVEN PREMIUM STREETWEAR EDITION</span>
             <span className="text-zinc-700">/</span>
           </div>
         </div>

@@ -31,9 +31,7 @@ export default function AddProductPage() {
     tags: "",
     categoryId: "",
     brandId: "",
-    originalPrice: "",
-    discountPrice: "",
-    offerPercentage: "",
+    price: "",
     stockQuantity: "",
     stockStatus: "in_stock" as "in_stock" | "out_of_stock" | "low_stock",
     collectionType: "",
@@ -162,10 +160,7 @@ export default function AddProductPage() {
     setSaving(true);
     try {
       const validImages = imageUrls.filter((url) => url.trim() !== "");
-      const price =
-        parseFloat(formData.discountPrice) ||
-        parseFloat(formData.originalPrice) ||
-        0;
+      const price = parseFloat(formData.price) || 0;
 
       await addProduct({
         name: formData.name.trim(),
@@ -274,6 +269,7 @@ export default function AddProductPage() {
               >
                 {categories.map((cat) => (
                   <AdminSelectOption
+                    key={cat.id}
                     optionKey={`cat-${cat.id}`}
                     value={cat.id}
                   >
@@ -300,6 +296,7 @@ export default function AddProductPage() {
               >
                 {brandsForCategory.map((brand) => (
                   <AdminSelectOption
+                    key={brandOptionKey(brand)}
                     optionKey={brandOptionKey(brand)}
                     value={brand.id}
                   >
@@ -382,50 +379,20 @@ export default function AddProductPage() {
         <div className="space-y-4">
           <h3 className="text-lg font-bold text-white">Pricing</h3>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <label className="text-xs uppercase tracking-wider text-zinc-500 font-medium">
-                Original Price (₹) *
+                Price (₹) *
               </label>
               <input
                 type="number"
-                name="originalPrice"
-                value={formData.originalPrice}
+                name="price"
+                value={formData.price}
                 onChange={handleInputChange}
                 required
                 min="0"
                 step="0.01"
                 placeholder="9999"
-                className="w-full bg-black border border-white/10 rounded-lg px-4 py-3 text-white placeholder-zinc-600 focus:border-[var(--accent-1)] focus:outline-none transition-colors"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-xs uppercase tracking-wider text-zinc-500 font-medium">
-                Discount Price (₹)
-              </label>
-              <input
-                type="number"
-                name="discountPrice"
-                value={formData.discountPrice}
-                onChange={handleInputChange}
-                min="0"
-                step="0.01"
-                placeholder="7999"
-                className="w-full bg-black border border-white/10 rounded-lg px-4 py-3 text-white placeholder-zinc-600 focus:border-[var(--accent-1)] focus:outline-none transition-colors"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-xs uppercase tracking-wider text-zinc-500 font-medium">
-                Discount %
-              </label>
-              <input
-                type="number"
-                name="offerPercentage"
-                value={formData.offerPercentage}
-                onChange={handleInputChange}
-                min="0"
-                max="100"
-                placeholder="20"
                 className="w-full bg-black border border-white/10 rounded-lg px-4 py-3 text-white placeholder-zinc-600 focus:border-[var(--accent-1)] focus:outline-none transition-colors"
               />
             </div>

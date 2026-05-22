@@ -203,26 +203,63 @@ async function fetchRemoteCatalog(): Promise<CatalogData | null> {
 export async function loadCatalog(force = false): Promise<CatalogData> {
   if (memoryCache && !force) return memoryCache;
 
+  let remoteCatalog: CatalogData | null = null;
+
   if (isSupabaseConfigured) {
-    const remote = await fetchRemoteCatalog();
-    if (remote) {
-      const remoteHasData =
-        remote.categories.length > 0 || remote.brands.length > 0;
-      if (remoteHasData) {
-        writeLocalCatalog(remote);
-        return remote;
-      }
-      invalidateCatalogCache();
+    try {
+      remoteCatalog = await fetchRemoteCatalog();
+    } catch (error) {
+      console.error("Failed to load catalog from Supabase:", error);
+    }
+  }
+
+  if (remoteCatalog !== null) {
+    if (isCatalogCustomized()) {
       const local = loadLocalCatalog();
-      if (
-        isCatalogCustomized() ||
-        local.categories.length > 0 ||
-        local.brands.length > 0
-      ) {
-        return local;
+      
+      // Merge categories
+      const localCategoriesMap = new Map(local.categories.map((c) => [c.id, c]));
+      const mergedCategories: Category[] = [];
+      for (const r of remoteCatalog.categories) {
+        if (localCategoriesMap.has(r.id)) {
+          mergedCategories.push(localCategoriesMap.get(r.id)!);
+        }
       }
-      writeLocalCatalog(remote);
-      return remote;
+      const remoteCategoryIds = new Set(remoteCatalog.categories.map((c) => c.id));
+      for (const l of local.categories) {
+        if (!remoteCategoryIds.has(l.id)) {
+          mergedCategories.push(l);
+        }
+      }
+
+      // Merge brands
+      const localBrandsMap = new Map(local.brands.map((b) => [b.id, b]));
+      const mergedBrands: Brand[] = [];
+      for (const r of remoteCatalog.brands) {
+        if (localBrandsMap.has(r.id)) {
+          mergedBrands.push(localBrandsMap.get(r.id)!);
+        }
+      }
+      const remoteBrandIds = new Set(remoteCatalog.brands.map((b) => b.id));
+      for (const l of local.brands) {
+        if (!remoteBrandIds.has(l.id)) {
+          mergedBrands.push(l);
+        }
+      }
+
+      const mergedCatalog = {
+        categories: mergedCategories,
+        brands: normalizeBrands(mergedBrands),
+      };
+      writeLocalCatalog(mergedCatalog);
+      return mergedCatalog;
+    } else {
+      const remoteHasData =
+        remoteCatalog.categories.length > 0 || remoteCatalog.brands.length > 0;
+      if (remoteHasData) {
+        writeLocalCatalog(remoteCatalog);
+        return remoteCatalog;
+      }
     }
   }
 
@@ -286,26 +323,34 @@ export async function addCategory(
     updated_at: now,
   };
 
-  if (supabase) {
-    const { error } = await supabase.from("categories").insert({
-      name: category.name,
-      slug: category.slug,
-      description: category.description,
-      image: category.image,
-      icon: category.icon || null,
-      display_order: category.display_order,
-      is_active: category.is_active,
-    });
-    if (error) throw error;
-    await refreshCatalog();
-    markCatalogCustomized();
-    return category;
-  }
-
+  // 1. Update local storage first so changes are saved immediately
   const catalog = loadLocalCatalog();
   const next = { ...catalog, categories: [...catalog.categories, category] };
   markCatalogCustomized();
   writeLocalCatalog(next);
+
+  // 2. Non-blocking database insertion
+  if (supabase) {
+    try {
+      const { error } = await supabase.from("categories").insert({
+        name: category.name,
+        slug: category.slug,
+        description: category.description,
+        image: category.image,
+        icon: category.icon || null,
+        display_order: category.display_order,
+        is_active: category.is_active,
+      });
+      if (error) {
+        console.warn("Supabase category insert failed (RLS?):", error.message);
+      } else {
+        await refreshCatalog();
+      }
+    } catch (err) {
+      console.warn("Failed to insert category in Supabase:", err);
+    }
+  }
+
   return category;
 }
 
@@ -313,47 +358,49 @@ export async function updateCategory(
   id: string,
   updates: Partial<Category>
 ): Promise<void> {
-  if (supabase) {
-    const payload: Record<string, unknown> = { updated_at: new Date().toISOString() };
-    if (updates.name !== undefined) payload.name = updates.name;
-    if (updates.slug !== undefined) payload.slug = updates.slug;
-    if (updates.description !== undefined) payload.description = updates.description;
-    if (updates.image !== undefined) payload.image = updates.image;
-    if (updates.icon !== undefined) payload.icon = updates.icon;
-    if (updates.display_order !== undefined)
-      payload.display_order = updates.display_order;
-    if (updates.is_active !== undefined) payload.is_active = updates.is_active;
+  const now = new Date().toISOString();
 
-    const { error } = await supabase
-      .from("categories")
-      .update(payload)
-      .eq("slug", id);
-    if (error) throw error;
-    await refreshCatalog();
-    markCatalogCustomized();
-    return;
-  }
-
+  // 1. Update local storage first
   const catalog = loadLocalCatalog();
   const next = {
     ...catalog,
     categories: catalog.categories.map((c) =>
-      c.id === id ? { ...c, ...updates, updated_at: new Date().toISOString() } : c
+      c.id === id ? { ...c, ...updates, updated_at: now } : c
     ),
   };
   markCatalogCustomized();
   writeLocalCatalog(next);
+
+  // 2. Non-blocking database update
+  if (supabase) {
+    try {
+      const payload: Record<string, unknown> = { updated_at: now };
+      if (updates.name !== undefined) payload.name = updates.name;
+      if (updates.slug !== undefined) payload.slug = updates.slug;
+      if (updates.description !== undefined) payload.description = updates.description;
+      if (updates.image !== undefined) payload.image = updates.image;
+      if (updates.icon !== undefined) payload.icon = updates.icon;
+      if (updates.display_order !== undefined)
+        payload.display_order = updates.display_order;
+      if (updates.is_active !== undefined) payload.is_active = updates.is_active;
+
+      const { error } = await supabase
+        .from("categories")
+        .update(payload)
+        .eq("slug", id);
+      if (error) {
+        console.warn("Supabase category update failed (RLS?):", error.message);
+      } else {
+        await refreshCatalog();
+      }
+    } catch (err) {
+      console.warn("Failed to update category in Supabase:", err);
+    }
+  }
 }
 
 export async function deleteCategory(id: string): Promise<void> {
-  if (supabase) {
-    const { error } = await supabase.from("categories").delete().eq("slug", id);
-    if (error) throw error;
-    await refreshCatalog();
-    markCatalogCustomized();
-    return;
-  }
-
+  // 1. Update local storage first
   const catalog = loadLocalCatalog();
   const next = {
     categories: catalog.categories.filter((c) => c.id !== id),
@@ -361,6 +408,20 @@ export async function deleteCategory(id: string): Promise<void> {
   };
   markCatalogCustomized();
   writeLocalCatalog(next);
+
+  // 2. Non-blocking database deletion
+  if (supabase) {
+    try {
+      const { error } = await supabase.from("categories").delete().eq("slug", id);
+      if (error) {
+        console.warn("Supabase category delete failed (RLS?):", error.message);
+      } else {
+        await refreshCatalog();
+      }
+    } catch (err) {
+      console.warn("Failed to delete category in Supabase:", err);
+    }
+  }
 }
 
 export async function addBrand(
@@ -386,31 +447,41 @@ export async function addBrand(
     updated_at: now,
   };
 
-  if (supabase) {
-    const categoryUuid = await resolveCategoryUuid(data.category_id);
-    if (!categoryUuid) throw new Error("Category not found in database");
-
-    const { error } = await supabase.from("brands").insert({
-      category_id: categoryUuid,
-      name: brand.name,
-      slug: brand.slug,
-      logo: brand.logo || null,
-      banner: brand.banner || null,
-      description: brand.description,
-      website: brand.website || null,
-      display_order: brand.display_order,
-      is_active: brand.is_active,
-      featured: brand.featured,
-    });
-    if (error) throw error;
-    await refreshCatalog();
-    markCatalogCustomized();
-    return brand;
-  }
-
+  // 1. Update local storage first
   const catalog = loadLocalCatalog();
   markCatalogCustomized();
   writeLocalCatalog({ ...catalog, brands: [...catalog.brands, brand] });
+
+  // 2. Non-blocking database insertion
+  if (supabase) {
+    try {
+      const categoryUuid = await resolveCategoryUuid(data.category_id);
+      if (categoryUuid) {
+        const { error } = await supabase.from("brands").insert({
+          category_id: categoryUuid,
+          name: brand.name,
+          slug: brand.slug,
+          logo: brand.logo || null,
+          banner: brand.banner || null,
+          description: brand.description,
+          website: brand.website || null,
+          display_order: brand.display_order,
+          is_active: brand.is_active,
+          featured: brand.featured,
+        });
+        if (error) {
+          console.warn("Supabase brand insert failed (RLS?):", error.message);
+        } else {
+          await refreshCatalog();
+        }
+      } else {
+        console.warn("Category UUID not found in database for category:", data.category_id);
+      }
+    } catch (err) {
+      console.warn("Failed to insert brand in Supabase:", err);
+    }
+  }
+
   return brand;
 }
 
@@ -418,76 +489,95 @@ export async function updateBrand(
   id: string,
   updates: Partial<Brand>
 ): Promise<void> {
-  if (supabase) {
-    const catalog = await loadCatalog();
-    const brand = catalog.brands.find((b) => b.id === id);
-    if (!brand) throw new Error("Brand not found");
+  const now = new Date().toISOString();
 
-    const payload: Record<string, unknown> = { updated_at: new Date().toISOString() };
-    if (updates.name !== undefined) payload.name = updates.name;
-    if (updates.slug !== undefined) payload.slug = updates.slug;
-    if (updates.description !== undefined) payload.description = updates.description;
-    if (updates.logo !== undefined) payload.logo = updates.logo;
-    if (updates.banner !== undefined) payload.banner = updates.banner;
-    if (updates.website !== undefined) payload.website = updates.website;
-    if (updates.display_order !== undefined)
-      payload.display_order = updates.display_order;
-    if (updates.is_active !== undefined) payload.is_active = updates.is_active;
-    if (updates.featured !== undefined) payload.featured = updates.featured;
-
-    if (updates.category_id !== undefined) {
-      const uuid = await resolveCategoryUuid(updates.category_id);
-      if (!uuid) throw new Error("Category not found");
-      payload.category_id = uuid;
-    }
-
-    const { error } = await supabase
-      .from("brands")
-      .update(payload)
-      .eq("slug", brand.slug)
-      .eq("category_id", await resolveCategoryUuid(brand.category_id));
-    if (error) throw error;
-    await refreshCatalog();
-    markCatalogCustomized();
-    return;
-  }
-
+  // 1. Update local storage first
   const catalog = loadLocalCatalog();
   const next = {
     ...catalog,
     brands: catalog.brands.map((b) =>
-      b.id === id ? { ...b, ...updates, updated_at: new Date().toISOString() } : b
+      b.id === id ? { ...b, ...updates, updated_at: now } : b
     ),
   };
   markCatalogCustomized();
   writeLocalCatalog(next);
+
+  // 2. Non-blocking database update
+  if (supabase) {
+    try {
+      const brand = catalog.brands.find((b) => b.id === id);
+      if (brand) {
+        const payload: Record<string, unknown> = { updated_at: now };
+        if (updates.name !== undefined) payload.name = updates.name;
+        if (updates.slug !== undefined) payload.slug = updates.slug;
+        if (updates.description !== undefined) payload.description = updates.description;
+        if (updates.logo !== undefined) payload.logo = updates.logo;
+        if (updates.banner !== undefined) payload.banner = updates.banner;
+        if (updates.website !== undefined) payload.website = updates.website;
+        if (updates.display_order !== undefined)
+          payload.display_order = updates.display_order;
+        if (updates.is_active !== undefined) payload.is_active = updates.is_active;
+        if (updates.featured !== undefined) payload.featured = updates.featured;
+
+        if (updates.category_id !== undefined) {
+          const uuid = await resolveCategoryUuid(updates.category_id);
+          if (uuid) {
+            payload.category_id = uuid;
+          }
+        }
+
+        const categoryUuid = await resolveCategoryUuid(brand.category_id);
+        if (categoryUuid) {
+          const { error } = await supabase
+            .from("brands")
+            .update(payload)
+            .eq("slug", brand.slug)
+            .eq("category_id", categoryUuid);
+          if (error) {
+            console.warn("Supabase brand update failed (RLS?):", error.message);
+          } else {
+            await refreshCatalog();
+          }
+        }
+      }
+    } catch (err) {
+      console.warn("Failed to update brand in Supabase:", err);
+    }
+  }
 }
 
 export async function deleteBrand(id: string): Promise<void> {
-  if (supabase) {
-    const catalog = await loadCatalog();
-    const brand = catalog.brands.find((b) => b.id === id);
-    if (!brand) return;
-    const categoryUuid = await resolveCategoryUuid(brand.category_id);
-    if (!categoryUuid) return;
-
-    const { error } = await supabase
-      .from("brands")
-      .delete()
-      .eq("slug", brand.slug)
-      .eq("category_id", categoryUuid);
-    if (error) throw error;
-    await refreshCatalog();
-    markCatalogCustomized();
-    return;
-  }
-
+  // 1. Update local storage first
   const catalog = loadLocalCatalog();
   markCatalogCustomized();
   writeLocalCatalog({
     ...catalog,
     brands: catalog.brands.filter((b) => b.id !== id),
   });
+
+  // 2. Non-blocking database deletion
+  if (supabase) {
+    try {
+      const brand = catalog.brands.find((b) => b.id === id);
+      if (brand) {
+        const categoryUuid = await resolveCategoryUuid(brand.category_id);
+        if (categoryUuid) {
+          const { error } = await supabase
+            .from("brands")
+            .delete()
+            .eq("slug", brand.slug)
+            .eq("category_id", categoryUuid);
+          if (error) {
+            console.warn("Supabase brand delete failed (RLS?):", error.message);
+          } else {
+            await refreshCatalog();
+          }
+        }
+      }
+    } catch (err) {
+      console.warn("Failed to delete brand from Supabase:", err);
+    }
+  }
 }
 
 /** @deprecated Use loadCatalog — kept for gradual migration */

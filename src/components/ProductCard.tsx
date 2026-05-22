@@ -27,7 +27,7 @@ function ProductCard({ product }: ProductCardProps) {
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <div className="relative aspect-square overflow-hidden bg-zinc-950 mb-3.5 rounded-lg border border-white/5">
+      <div className="relative aspect-square overflow-hidden bg-zinc-950 mb-3.5 rounded-lg border border-white/5" style={{ position: "relative" }}>
         {product.isNew && (
           <span className="absolute top-3 left-3 z-10 bg-[var(--accent-1)] text-black text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded shadow-lg">
             NEW

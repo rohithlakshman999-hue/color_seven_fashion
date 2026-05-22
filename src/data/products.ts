@@ -63,7 +63,7 @@ export const products: Product[] = [
     images: [
       "/images/baseball_cap.png"
     ],
-    description: "Classic 6-panel adjustable cotton cap featuring custom Outlaw front embroidery and steel buckle adjustment.",
+    description: "Classic 6-panel adjustable cotton cap featuring custom Colour Seven front embroidery and steel buckle adjustment.",
     sizes: ["OS"],
     colors: ["Black"],
     isNew: false
@@ -147,7 +147,7 @@ export const products: Product[] = [
     images: [
       "/images/baseball_cap.png"
     ],
-    description: "Soft-knit ribbed beanie featuring an Outlaw woven styling patch. Keeps you warm and stylish all winter.",
+    description: "Soft-knit ribbed beanie featuring a Colour Seven woven styling patch. Keeps you warm and stylish all winter.",
     sizes: ["OS"],
     colors: ["Black"],
     isNew: false

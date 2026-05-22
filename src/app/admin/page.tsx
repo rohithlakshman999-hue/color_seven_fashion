@@ -40,8 +40,16 @@ const categoryIconBySlug: Record<string, React.ComponentType<{ className?: strin
 };
 
 export default function AdminDashboard() {
-  const { products } = useProducts();
+  const { products, loaded } = useProducts();
   const { categories: catalogCategories, brands: catalogBrands } = useCatalog();
+
+  if (!loaded) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin w-8 h-8 border-2 border-[var(--accent-1)] border-t-transparent rounded-full" />
+      </div>
+    );
+  }
 
   const categoryCounts = {
     Watches: products.filter((p) => p.category === "Watches").length,

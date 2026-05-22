@@ -37,7 +37,7 @@ export default function Collections() {
               }`}
             >
               {/* Collection Image */}
-              <div className="w-full lg:w-3/5 aspect-[4/3] relative overflow-hidden bg-zinc-950 group rounded-2xl border border-white/10 shadow-2xl">
+              <div className="w-full lg:w-3/5 aspect-[4/3] relative overflow-hidden bg-zinc-950 group rounded-2xl border border-white/10 shadow-2xl" style={{ position: "relative" }}>
                 <Image
                   src={collection.image}
                   alt={collection.name}

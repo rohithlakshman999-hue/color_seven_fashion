@@ -62,6 +62,11 @@ export function ProductProvider({ children }: { children: ReactNode }) {
       try {
         const data = await loadProducts(true);
         if (active) setProducts(data);
+      } catch (error) {
+        console.error("Failed to load products:", error);
+        // Fallback to local products if load fails
+        const local = getProductsSync();
+        if (active && local.length > 0) setProducts(local);
       } finally {
         if (active) setLoaded(true);
       }

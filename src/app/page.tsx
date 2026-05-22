@@ -4,13 +4,44 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { ArrowRight, Flame, ShieldCheck, Zap, Award, Truck } from "lucide-react";
 import ProductCard from "@/components/ProductCard";
-import { useProducts } from "@/context/ProductContext";
+import { products } from "@/data/products";
 import Image from "next/image";
+import { useHomepageContent } from "@/context/HomepageContentContext";
+import { useProducts } from "@/context/ProductContext";
 
 export default function Home() {
-  const { products } = useProducts();
-  // Grab the 6 key trending products as shown in the mockup
-  const trendingProducts = products.slice(0, 6);
+  const { getSection, loaded: contentLoaded } = useHomepageContent();
+  const { products: dynamicProducts } = useProducts();
+  
+  // Grab the 6 key trending products from dynamic products or fallback to static
+  const trendingProducts = (dynamicProducts.length > 0 ? dynamicProducts : products).slice(0, 6);
+
+  // Fetch homepage content from Supabase
+  const heroContent = getSection("hero") as {
+    left_image?: string;
+    right_image?: string;
+    title?: string;
+    subtitle?: string;
+  } || {};
+  const categoriesContent = getSection("categories") as {
+    enabled?: boolean;
+    title?: string;
+  } || {};
+  const trendingContent = getSection("trending") as {
+    enabled?: boolean;
+    title?: string;
+  } || {};
+  const brandPillarsContent = getSection("brand_pillars") as {
+    enabled?: boolean;
+  } || {};
+
+  // Use Supabase content if available, otherwise use defaults
+  const leftHeroImage = heroContent.left_image || "/images/0816a53b-7f43-45cb-a73e-7d2bd6ef8278.jpg";
+  const rightHeroImage = heroContent.right_image || "/images/0a479a6e-62c8-434f-9312-7d03855c149b.jpg";
+  const heroTitle = heroContent.title || "LEGENDS. STYLE. YOU.";
+  const heroSubtitle = heroContent.subtitle || "CLOTHES | SHOES | ACCESSORIES | WATCHES";
+  const categoriesTitle = categoriesContent.title || "EXPLORE CATEGORIES";
+  const trendingTitle = trendingContent.title || "TRENDING NOW";
 
   // Define category cards in the exact requested order: Watches, Shoes, Clothes, Accessories
   const categoryCards = [
@@ -18,134 +49,171 @@ export default function Home() {
       name: "Watches",
       subtext: "TIMELESS PRECISION",
       image: "/images/chrono_watch.png",
-      href: "/shop/watches",
+      href: "/shop?category=Watches",
     },
     {
       name: "Shoes",
       subtext: "FOOTWEAR LEGENDS",
       image: "/images/nike_air_force.png",
-      href: "/shop/shoes",
+      href: "/shop?category=Shoes",
     },
     {
       name: "Clothes",
       subtext: "STREETWEAR APPAREL",
       image: "/images/black_hoodie.png",
-      href: "/shop/clothes",
+      href: "/shop?category=Clothes",
     },
     {
       name: "Accessories",
       subtext: "OUTLAW STYLING",
       image: "/images/baseball_cap.png",
-      href: "/shop/accessories",
+      href: "/shop?category=Accessories",
     },
   ];
 
   return (
     <div className="w-full bg-black text-white overflow-hidden">
       
-      {/* Hero Section - Same layout across all screen sizes */}
-      <section className="relative w-full overflow-hidden bg-black border-b border-white/5">
+      {/* Hero Section */}
+      <section className="relative min-h-[90vh] sm:h-[95vh] w-full flex flex-col sm:flex-row items-center justify-between overflow-hidden bg-black px-4 md:px-8 py-12 sm:py-0 border-b border-white/5">
         
         {/* Glow Blobs */}
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[250px] sm:w-[350px] md:w-[500px] lg:w-[600px] h-[250px] sm:h-[350px] md:h-[500px] lg:h-[600px] bg-[rgba(207,242,39,0.08)] rounded-full filter blur-[60px] md:blur-[80px] lg:blur-[120px] pointer-events-none z-0" />
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] md:w-[600px] h-[350px] md:h-[600px] bg-[rgba(207,242,39,0.08)] rounded-full filter blur-[80px] md:blur-[120px] pointer-events-none z-0" />
 
-        {/* UNIFIED LAYOUT - 3 columns side by side on all screen sizes */}
-        <div className="flex relative h-[80vh] sm:h-[85vh] md:h-[90vh] lg:h-[95vh] w-full items-center justify-between px-2 sm:px-4 md:px-6 lg:px-8 gap-1 sm:gap-2 md:gap-4 lg:gap-6 overflow-hidden">
+        {/* LEFT PROFILE: Dhoni Banner */}
+        <motion.div 
+          initial={{ opacity: 0, x: -50 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+          className="relative w-full sm:w-[30%] h-[300px] sm:h-full flex flex-col justify-end pb-8 sm:pb-16 z-10 order-2 sm:order-1 mt-6 sm:mt-0"
+        >
+          <div className="absolute inset-0 z-0" style={{ position: "absolute" }}>
+            <Image
+              src={leftHeroImage}
+              alt="MS Dhoni Colour Seven Banner"
+              fill
+              className="object-cover object-top rounded-2xl sm:rounded-none"
+              priority
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent sm:hidden" />
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-black/20 to-black hidden sm:block" />
+          </div>
           
-          {/* LEFT: Dhoni */}
-          <motion.div 
-            initial={{ opacity: 0, x: -50 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8, ease: "easeOut" }}
-            className="relative flex-shrink-0 w-[28%] sm:w-[25%] md:w-[22%] lg:w-[25%] h-full flex flex-col justify-end pb-4 sm:pb-6 md:pb-12 lg:pb-16 z-10"
-          >
-            <div className="absolute inset-0 z-0 min-h-[200px] sm:min-h-[300px] md:min-h-[400px] lg:min-h-[500px]">
-              <Image
-                src="/images/dhoni_hero.jpg"
-                alt="MS Dhoni Banner"
-                fill
-                className="object-cover object-top opacity-50 grayscale hover:grayscale-0 hover:opacity-75 transition-all duration-700"
-                loading="lazy"
-                sizes="(max-width: 640px) 28vw, 25vw"
-              />
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-black/20 to-black" />
-            </div>
-            <div className="relative z-10 px-1 sm:px-2 md:px-3 lg:px-6">
-              <h3 className="font-serif text-[10px] sm:text-sm md:text-2xl lg:text-4xl xl:text-5xl text-[var(--accent-1)] tracking-widest skew-x-[-10deg] uppercase drop-shadow-lg">
-                DHONI
-              </h3>
-              <p className="text-[5px] sm:text-[6px] md:text-[8px] lg:text-xs tracking-[0.15em] sm:tracking-[0.2em] md:tracking-[0.3em] text-zinc-400 font-extrabold mt-0.5 sm:mt-1">
-                CALM. FOCUSED. LEGENDARY.
-              </p>
-            </div>
-          </motion.div>
+          <div className="relative z-10 px-4 md:px-6">
+            <h3 className="font-serif text-2xl md:text-4xl xl:text-5xl text-[var(--accent-1)] tracking-widest skew-x-[-10deg] uppercase drop-shadow-lg">
+              DHONI
+            </h3>
+            <p className="text-[8px] md:text-xs tracking-[0.3em] text-zinc-400 font-extrabold mt-1">
+              CALM. FOCUSED. LEGENDARY.
+            </p>
+          </div>
+        </motion.div>
 
-          {/* CENTER: Hero Copy */}
-          <div className="relative flex-1 h-full flex flex-col items-center justify-center text-center z-20 px-1 sm:px-2 md:px-3 lg:px-4">
-            <div className="absolute w-[80px] h-[80px] sm:w-[120px] sm:h-[120px] md:w-[180px] md:h-[180px] lg:w-[240px] lg:h-[240px] xl:w-[380px] xl:h-[380px] pointer-events-none z-0">
-              <svg className="w-full h-full circle-revolve text-[var(--accent-1)]/10" viewBox="0 0 100 100">
-                <circle cx="50" cy="50" r="46" fill="none" stroke="currentColor" strokeWidth="1" strokeDasharray="4 8" />
-                <circle cx="50" cy="50" r="42" fill="none" stroke="currentColor" strokeWidth="0.5" strokeDasharray="40 10" className="opacity-50" />
-              </svg>
-            </div>
-            <motion.div 
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, ease: "easeOut" }}
-              className="flex flex-col items-center justify-center font-sans tracking-tighter relative z-10"
-            >
-              <h1 className="text-lg sm:text-2xl md:text-3xl lg:text-5xl xl:text-6xl 2xl:text-[5.5rem] font-black leading-[0.9] text-white">LEGENDS.</h1>
-              <h1 className="text-lg sm:text-2xl md:text-3xl lg:text-5xl xl:text-6xl 2xl:text-[5.5rem] font-black leading-[0.9] text-[var(--accent-1)] my-0.5 sm:my-1 md:my-2 filter drop-shadow-[0_0_15px_rgba(207,242,39,0.3)]">STYLE.</h1>
-              <h1 className="text-lg sm:text-2xl md:text-3xl lg:text-5xl xl:text-6xl 2xl:text-[5.5rem] font-black leading-[0.9] text-white">YOU.</h1>
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4, duration: 0.6 }}
-              className="mt-2 sm:mt-4 md:mt-6 lg:mt-8 z-30 relative"
-            >
-              <Link
-                href="/shop"
-                className="inline-flex items-center space-x-1.5 sm:space-x-2 md:space-x-3 bg-[var(--accent-1)] text-black px-2 sm:px-4 md:px-6 lg:px-8 py-1.5 sm:py-2 md:py-2.5 lg:py-3.5 uppercase tracking-widest text-[6px] sm:text-[8px] md:text-[9px] lg:text-xs font-black hover:bg-white hover:text-black hover:scale-105 transition-all duration-300 shadow-[0_10px_30px_rgba(207,242,39,0.25)] rounded-full"
-              >
-                <span>SHOP NOW</span>
-                <ArrowRight className="w-2 sm:w-3 md:w-4 h-2 sm:h-3 md:h-4" />
-              </Link>
-            </motion.div>
+        {/* CENTER COLUMN: Hero Copy & Revolve Circle */}
+        <div className="relative w-full sm:w-[40%] h-full flex flex-col items-center justify-center text-center z-20 order-1 sm:order-2 px-2 py-8 sm:py-0">
+          
+          {/* Circular Glowing SVG Arc revolving in background */}
+          <div className="absolute w-[280px] sm:w-[350px] md:w-[480px] h-[280px] sm:h-[350px] md:h-[480px] pointer-events-none z-0">
+            <svg className="w-full h-full circle-revolve text-[var(--accent-1)]/10" viewBox="0 0 100 100">
+              <circle
+                cx="50"
+                cy="50"
+                r="46"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1"
+                strokeDasharray="4 8"
+              />
+              <circle
+                cx="50"
+                cy="50"
+                r="42"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="0.5"
+                strokeDasharray="40 10"
+                className="opacity-50"
+              />
+            </svg>
           </div>
 
-          {/* RIGHT: Ronaldo */}
+          {/* Heading Text */}
           <motion.div 
-            initial={{ opacity: 0, x: 50 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8, ease: "easeOut" }}
-            className="relative flex-shrink-0 w-[28%] sm:w-[25%] md:w-[22%] lg:w-[25%] h-full flex flex-col justify-end pb-4 sm:pb-6 md:pb-12 lg:pb-16 z-10"
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+            className="flex flex-col items-center justify-center font-sans tracking-tighter"
           >
-            <div className="absolute inset-0 z-0 min-h-[200px] sm:min-h-[300px] md:min-h-[400px] lg:min-h-[500px]">
-              <Image
-                src="/images/ronaldo_hero.jpg"
-                alt="Cristiano Ronaldo Banner"
-                fill
-                className="object-cover object-top opacity-50 grayscale hover:grayscale-0 hover:opacity-75 transition-all duration-700"
-                loading="lazy"
-                sizes="(max-width: 640px) 28vw, 25vw"
-              />
-              <div className="absolute inset-0 bg-gradient-to-l from-transparent via-black/20 to-black" />
-            </div>
-            <div className="relative z-10 px-1 sm:px-2 md:px-3 lg:px-6 text-right">
-              <h3 className="font-serif text-[10px] sm:text-sm md:text-2xl lg:text-4xl xl:text-5xl text-[var(--accent-1)] tracking-widest skew-x-[-10deg] uppercase drop-shadow-lg">
-                RONALDO
-              </h3>
-              <p className="text-[5px] sm:text-[6px] md:text-[8px] lg:text-xs tracking-[0.15em] sm:tracking-[0.2em] md:tracking-[0.3em] text-zinc-400 font-extrabold mt-0.5 sm:mt-1">
-                DISCIPLINE. DRIVE. GREATNESS.
-              </p>
-            </div>
+            <h1 className="text-4xl sm:text-3xl md:text-5xl lg:text-6xl xl:text-7.5xl font-black leading-[0.9] text-white">
+              {heroTitle}
+            </h1>
+            <h1 className="text-4xl sm:text-3xl md:text-5xl lg:text-6xl xl:text-7.5xl font-black leading-[0.9] text-[var(--accent-1)] my-2 filter drop-shadow-[0_0_15px_rgba(207,242,39,0.3)]">
+              STYLE.
+            </h1>
+            <h1 className="text-4xl sm:text-3xl md:text-5xl lg:text-6xl xl:text-7.5xl font-black leading-[0.9] text-white">
+              YOU.
+            </h1>
+          </motion.div>
+
+          {/* List of Main categories */}
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3, duration: 0.6 }}
+            className="text-[8px] sm:text-[9px] md:text-xs tracking-[0.35em] text-zinc-400 font-black uppercase mt-8"
+          >
+            {heroSubtitle}
+          </motion.p>
+
+          {/* Shop Now Button Pill */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4, duration: 0.6 }}
+            className="mt-8 z-30"
+          >
+            <Link
+              href="/shop"
+              className="inline-flex items-center space-x-3 bg-[var(--accent-1)] text-black px-8 py-3.5 uppercase tracking-widest text-xs font-black hover:bg-white hover:text-black hover:scale-105 transition-all duration-300 shadow-[0_10px_30px_rgba(207,242,39,0.25)] rounded-full"
+            >
+              <span>SHOP NOW</span>
+              <ArrowRight className="w-4 h-4" />
+            </Link>
           </motion.div>
         </div>
+
+        {/* RIGHT PROFILE: Ronaldo Banner */}
+        <motion.div 
+          initial={{ opacity: 0, x: 50 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+          className="relative w-full sm:w-[30%] h-[300px] sm:h-full flex flex-col justify-end pb-8 sm:pb-16 z-10 order-3 flex-grow sm:flex-grow-0"
+        >
+          <div className="absolute inset-0 z-0" style={{ position: "absolute" }}>
+            <Image
+              src={rightHeroImage}
+              alt="Cristiano Ronaldo Colour Seven Banner"
+              fill
+              className="object-cover object-top rounded-2xl sm:rounded-none"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent sm:hidden" />
+            <div className="absolute inset-0 bg-gradient-to-l from-transparent via-black/20 to-black hidden sm:block" />
+          </div>
+          
+          <div className="relative z-10 px-4 md:px-6 sm:text-right">
+            <h3 className="font-serif text-2xl md:text-4xl xl:text-5xl text-[var(--accent-1)] tracking-widest skew-x-[-10deg] uppercase drop-shadow-lg">
+              RONALDO
+            </h3>
+            <p className="text-[8px] md:text-xs tracking-[0.3em] text-zinc-400 font-extrabold mt-1">
+              DISCIPLINE. DRIVE. GREATNESS.
+            </p>
+          </div>
+        </motion.div>
       </section>
 
       {/* Categories Row (Exact Order: Watches, Shoes, Clothes, Accessories) */}
-      <section className="py-20 px-4 md:px-8 bg-black relative border-b border-white/5">
+      {categoriesContent.enabled !== false && (
+        <section className="py-20 px-4 md:px-8 bg-black relative border-b border-white/5">
         <div className="container mx-auto">
           
           <motion.div 
@@ -156,7 +224,7 @@ export default function Home() {
           >
             <h2 className="text-2xl md:text-3xl font-black uppercase tracking-widest text-center flex items-center gap-2">
               <Zap className="w-5 h-5 text-[var(--accent-1)]" />
-              EXPLORE CATEGORIES
+              {categoriesTitle}
             </h2>
             <div className="h-1 w-20 bg-[var(--accent-1)] mt-3 rounded-full" />
           </motion.div>
@@ -204,9 +272,11 @@ export default function Home() {
           </div>
         </div>
       </section>
+      )}
 
       {/* Trending Now Section */}
-      <section className="py-24 px-4 md:px-8 bg-zinc-950 relative overflow-hidden">
+      {trendingContent.enabled !== false && (
+        <section className="py-24 px-4 md:px-8 bg-zinc-950 relative overflow-hidden">
         
         {/* Glow Blobs */}
         <div className="absolute bottom-[-10%] left-[-10%] w-[400px] h-[400px] bg-[rgba(207,242,39,0.03)] rounded-full filter blur-[100px] pointer-events-none" />
@@ -221,7 +291,7 @@ export default function Home() {
           >
             <h2 className="text-xl md:text-2xl font-black tracking-wider uppercase flex items-center gap-2.5">
               <Flame className="w-5 h-5 text-[var(--accent-1)] animate-pulse" />
-              TRENDING NOW
+              {trendingTitle}
             </h2>
             <Link 
               href="/shop" 
@@ -240,9 +310,11 @@ export default function Home() {
           </div>
         </div>
       </section>
+      )}
 
       {/* Premium Brand Pillars */}
-      <section className="py-20 px-4 md:px-8 bg-[#030303] border-t border-white/5">
+      {brandPillarsContent.enabled !== false && (
+        <section className="py-20 px-4 md:px-8 bg-[#030303] border-t border-white/5">
         <div className="container mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center divide-y md:divide-y-0 md:divide-x divide-white/5">
             <div className="py-6 md:py-0 flex flex-col items-center">
@@ -269,6 +341,7 @@ export default function Home() {
           </div>
         </div>
       </section>
+      )}
     </div>
   );
 }

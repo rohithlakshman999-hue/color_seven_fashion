@@ -2,8 +2,18 @@
 
 import { MapPin, Phone, MessageSquare, Mail, Zap } from "lucide-react";
 import { motion } from "framer-motion";
+import { useContactInfo } from "@/context/ContactInfoContext";
 
 export default function Contact() {
+  const { contactInfo, loaded } = useContactInfo();
+
+  const phone = contactInfo?.phone_number || "+91 9353812197";
+  const whatsapp = contactInfo?.whatsapp_number || "+91 9353812197";
+  const email = contactInfo?.email || "support@colourseven.com";
+  const city = contactInfo?.city || "Bangalore";
+  const state = contactInfo?.state || "India";
+  const address = contactInfo?.address || "";
+
   return (
     <div className="pt-16 pb-24 bg-black min-h-screen text-white">
       {/* Header Banner */}
@@ -15,7 +25,7 @@ export default function Contact() {
             GET IN TOUCH
           </h1>
           <p className="text-zinc-500 text-xs md:text-sm tracking-[0.25em] uppercase font-bold">
-            OUTLAW STYLING STORE &bull; SUPPORT & SALES
+            COLOUR SEVEN FASHION &bull; SUPPORT & SALES
           </p>
         </div>
       </div>
@@ -38,7 +48,7 @@ export default function Contact() {
                 </div>
                 <div>
                   <h3 className="uppercase tracking-widest text-[10px] font-black text-zinc-500 mb-1">Phone</h3>
-                  <p className="text-white text-xs font-bold">+91 9353812197</p>
+                  <p className="text-white text-xs font-bold">{phone}</p>
                   <p className="text-zinc-600 text-[10px] mt-1 font-bold">Mon-Sat 10am-7pm</p>
                 </div>
               </div>
@@ -50,9 +60,9 @@ export default function Contact() {
                 </div>
                 <div>
                   <h3 className="uppercase tracking-widest text-[10px] font-black text-zinc-500 mb-1">WhatsApp</h3>
-                  <p className="text-white text-xs font-bold">+91 9353812197</p>
+                  <p className="text-white text-xs font-bold">{whatsapp}</p>
                   <a 
-                    href="https://wa.me/919353812197" 
+                    href={`https://wa.me/${whatsapp.replace(/\D/g, '')}`} 
                     target="_blank" 
                     rel="noopener noreferrer" 
                     className="inline-block mt-2 text-[10px] font-black uppercase text-[var(--accent-1)] hover:text-white transition-colors"
@@ -69,7 +79,7 @@ export default function Contact() {
                 </div>
                 <div>
                   <h3 className="uppercase tracking-widest text-[10px] font-black text-zinc-500 mb-1">Location</h3>
-                  <p className="text-white text-xs font-bold">Bangalore, India</p>
+                  <p className="text-white text-xs font-bold">{address || `${city}, ${state}`}</p>
                   <p className="text-zinc-600 text-[10px] mt-1 font-bold">Pan India Shipping</p>
                 </div>
               </div>
@@ -81,7 +91,7 @@ export default function Contact() {
                 </div>
                 <div>
                   <h3 className="uppercase tracking-widest text-[10px] font-black text-zinc-500 mb-1">Email</h3>
-                  <p className="text-white text-xs font-bold break-all">support@outlawstyling.com</p>
+                  <p className="text-white text-xs font-bold break-all">{email}</p>
                 </div>
               </div>
 
