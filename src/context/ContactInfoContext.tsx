@@ -46,8 +46,14 @@ export function ContactInfoProvider({ children }: { children: ReactNode }) {
       } else {
         setContactInfo((data?.[0] as ContactInfo) || null);
       }
-    } catch (error) {
-      console.error("Failed to load contact info:", error);
+    } catch (error: any) {
+    console.error("Supabase error:", {
+      message: error?.message,
+      details: error?.details,
+      hint: error?.hint,
+      code: error?.code,
+      fullError: JSON.stringify(error, null, 2)
+    });
     } finally {
       setLoading(false);
       setLoaded(true);
@@ -60,8 +66,7 @@ export function ContactInfoProvider({ children }: { children: ReactNode }) {
 
   const updateContactInfo = useCallback(async (info: Partial<ContactInfo>) => {
     if (!supabase) {
-      console.error("Supabase not configured");
-      return;
+      throw new Error("Supabase is not configured. Cannot update contact info without database connection.");
     }
 
     try {
@@ -72,12 +77,20 @@ export function ContactInfoProvider({ children }: { children: ReactNode }) {
           updated_at: new Date().toISOString(),
         });
 
-      if (error) throw error;
+      if (error)
+    throw new Error(error?.message || JSON.stringify(error) || "Unknown error");
 
       await refresh();
-    } catch (error) {
-      console.error("Failed to update contact info:", error);
-      throw error;
+    } catch (error: any) {
+    console.error("Supabase error:", {
+      message: error?.message,
+      details: error?.details,
+      hint: error?.hint,
+      code: error?.code,
+      fullError: JSON.stringify(error, null, 2)
+    });
+    
+    throw new Error(error?.message || JSON.stringify(error) || "Unknown error");
     }
   }, [refresh]);
 

@@ -52,8 +52,14 @@ export function HomepageContentProvider({ children }: { children: ReactNode }) {
       }
 
       setContent(contentMap);
-    } catch (error) {
-      console.error("Failed to load homepage content:", error);
+    } catch (error: any) {
+    console.error("Supabase error:", {
+      message: error?.message,
+      details: error?.details,
+      hint: error?.hint,
+      code: error?.code,
+      fullError: JSON.stringify(error, null, 2)
+    });
     } finally {
       setLoading(false);
       setLoaded(true);
@@ -66,8 +72,7 @@ export function HomepageContentProvider({ children }: { children: ReactNode }) {
 
   const updateSection = useCallback(async (sectionName: string, sectionContent: Record<string, unknown>) => {
     if (!supabase) {
-      console.error("Supabase not configured");
-      return;
+      throw new Error("Supabase is not configured. Cannot update homepage section without database connection.");
     }
 
     try {
@@ -80,15 +85,23 @@ export function HomepageContentProvider({ children }: { children: ReactNode }) {
           updated_at: new Date().toISOString(),
         });
 
-      if (error) throw error;
+      if (error)
+    throw new Error(error?.message || JSON.stringify(error) || "Unknown error");
 
       setContent((prev) => ({
         ...prev,
         [sectionName]: sectionContent,
       }));
-    } catch (error) {
-      console.error("Failed to update homepage section:", error);
-      throw error;
+    } catch (error: any) {
+    console.error("Supabase error:", {
+      message: error?.message,
+      details: error?.details,
+      hint: error?.hint,
+      code: error?.code,
+      fullError: JSON.stringify(error, null, 2)
+    });
+    
+    throw new Error(error?.message || JSON.stringify(error) || "Unknown error");
     }
   }, []);
 

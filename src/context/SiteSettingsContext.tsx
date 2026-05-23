@@ -51,8 +51,14 @@ export function SiteSettingsProvider({ children }: { children: ReactNode }) {
       }
 
       setSettings(settingsMap);
-    } catch (error) {
-      console.error("Failed to load site settings:", error);
+    } catch (error: any) {
+    console.error("Supabase error:", {
+      message: error?.message,
+      details: error?.details,
+      hint: error?.hint,
+      code: error?.code,
+      fullError: JSON.stringify(error, null, 2)
+    });
     } finally {
       setLoading(false);
       setLoaded(true);
@@ -65,8 +71,7 @@ export function SiteSettingsProvider({ children }: { children: ReactNode }) {
 
   const updateSetting = useCallback(async (key: string, value: Record<string, unknown>) => {
     if (!supabase) {
-      console.error("Supabase not configured");
-      return;
+      throw new Error("Supabase is not configured. Cannot update site setting without database connection.");
     }
 
     try {
@@ -78,15 +83,23 @@ export function SiteSettingsProvider({ children }: { children: ReactNode }) {
           updated_at: new Date().toISOString(),
         });
 
-      if (error) throw error;
+      if (error)
+    throw new Error(error?.message || JSON.stringify(error) || "Unknown error");
 
       setSettings((prev) => ({
         ...prev,
         [key]: value,
       }));
-    } catch (error) {
-      console.error("Failed to update site setting:", error);
-      throw error;
+    } catch (error: any) {
+    console.error("Supabase error:", {
+      message: error?.message,
+      details: error?.details,
+      hint: error?.hint,
+      code: error?.code,
+      fullError: JSON.stringify(error, null, 2)
+    });
+    
+    throw new Error(error?.message || JSON.stringify(error) || "Unknown error");
     }
   }, []);
 

@@ -55,6 +55,7 @@ export default function EditProductPage({
 
   const [loaded, setLoaded] = useState(false);
   const [notFound, setNotFound] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const [name, setName] = useState("");
   const [brand, setBrand] = useState("");
@@ -220,10 +221,13 @@ export default function EditProductPage({
   const normalizePrice = (value: string) => {
     const cleaned = value.trim().replace(/[^\d.]/g, "");
     const parsed = Number(cleaned);
-    return Number.isFinite(parsed) ? Math.round(parsed) : 0;
+    // Preserve exact value without rounding
+    const result = Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
+    console.log("normalizePrice - input:", value, "cleaned:", cleaned, "parsed:", parsed, "result:", result);
+    return result;
   };
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setMessage(null);
     const validImages = images.map((i) => i.trim()).filter(Boolean);
@@ -245,20 +249,28 @@ export default function EditProductPage({
     }
 
     const finalBrand = isCustomBrand ? customBrand.trim() : brand.trim();
-    updateProduct(id, {
-      name: name.trim(),
-      brand: finalBrand || "Colour Seven",
-      price: normalizedPrice,
-      category,
-      images: validImages,
-      description: description.trim(),
-      sizes,
-      colors,
-      isNew,
-      isTrending,
-    });
+    setSaving(true);
+    try {
+      await updateProduct(id, {
+        name: name.trim(),
+        brand: finalBrand || "Colour Seven",
+        price: normalizedPrice,
+        category,
+        images: validImages,
+        description: description.trim(),
+        sizes,
+        colors,
+        isNew,
+        isTrending,
+      });
 
-    router.push("/admin/products");
+      router.push("/admin/products");
+    } catch (err: any) {
+      console.error("Failed to update product:", err);
+      setMessage({ type: "error", text: err?.message || "Failed to update product" });
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (!loaded) {
@@ -644,10 +656,17 @@ export default function EditProductPage({
         {/* Submit */}
         <button
           type="submit"
-          className="w-full flex items-center justify-center gap-2 bg-[var(--accent-1)] text-black font-black uppercase tracking-widest text-sm px-6 py-4 rounded-xl hover:brightness-110 transition-all"
+          disabled={saving}
+          className="w-full flex items-center justify-center gap-2 bg-[var(--accent-1)] text-black font-black uppercase tracking-widest text-sm px-6 py-4 rounded-xl hover:brightness-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <Save className="w-4 h-4" />
-          Save Changes
+          {saving ? (
+            "Saving..."
+          ) : (
+            <>
+              <Save className="w-4 h-4" />
+              Save Changes
+            </>
+          )}
         </button>
       </form>
     </motion.div>

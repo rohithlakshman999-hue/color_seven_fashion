@@ -2,87 +2,149 @@
 
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
+function validateSupabaseConnection() {
+  if (!supabaseAdmin) {
+    throw new Error("Supabase Admin not configured. Please check your environment variables.");
+  }
+}
+
 export async function adminAddCategory(payload: any) {
-  if (!supabaseAdmin) throw new Error("Supabase Admin not configured");
-  const { error } = await supabaseAdmin.from("categories").insert(payload);
-  if (error) throw new Error(error.message);
+  validateSupabaseConnection();
+  const client = supabaseAdmin!;
+  
+  // Validate required fields
+  if (!payload.name || typeof payload.name !== 'string' || payload.name.trim().length === 0) {
+    throw new Error("Category name is required and must be a non-empty string");
+  }
+  if (!payload.slug || typeof payload.slug !== 'string' || payload.slug.trim().length === 0) {
+    throw new Error("Category slug is required and must be a non-empty string");
+  }
+  
+  const { error } = await client.from("categories").insert(payload);
+  if (error) throw new Error(`Failed to add category: ${error.message}`);
   return { success: true };
 }
 
 export async function adminUpdateCategory(slug: string, payload: any) {
-  if (!supabaseAdmin) throw new Error("Supabase Admin not configured");
-  const { error } = await supabaseAdmin.from("categories").update(payload).eq("slug", slug);
-  if (error) throw new Error(error.message);
+  validateSupabaseConnection();
+  const client = supabaseAdmin!;
+  const { error } = await client.from("categories").update(payload).eq("slug", slug);
+  if (error) throw new Error(`Failed to update category: ${error.message}`);
   return { success: true };
 }
 
 export async function adminDeleteCategory(slug: string) {
-  if (!supabaseAdmin) throw new Error("Supabase Admin not configured");
-  const { error } = await supabaseAdmin.from("categories").delete().eq("slug", slug);
-  if (error) throw new Error(error.message);
+  validateSupabaseConnection();
+  const client = supabaseAdmin!;
+  const { error } = await client.from("categories").delete().eq("slug", slug);
+  if (error) throw new Error(`Failed to delete category: ${error.message}`);
   return { success: true };
 }
 
 export async function adminAddBrand(payload: any) {
-  if (!supabaseAdmin) throw new Error("Supabase Admin not configured");
-  const { error } = await supabaseAdmin.from("brands").insert(payload);
-  if (error) throw new Error(error.message);
+  validateSupabaseConnection();
+  const client = supabaseAdmin!;
+  
+  // Validate required fields
+  if (!payload.name || typeof payload.name !== 'string' || payload.name.trim().length === 0) {
+    throw new Error("Brand name is required and must be a non-empty string");
+  }
+  if (!payload.category_id || typeof payload.category_id !== 'string') {
+    throw new Error("Brand category_id is required and must be a string");
+  }
+  
+  const { error } = await client.from("brands").insert(payload);
+  if (error) throw new Error(`Failed to add brand: ${error.message}`);
   return { success: true };
 }
 
 export async function adminUpdateBrand(slug: string, categoryId: string, payload: any) {
-  if (!supabaseAdmin) throw new Error("Supabase Admin not configured");
-  const { error } = await supabaseAdmin.from("brands").update(payload).eq("slug", slug).eq("category_id", categoryId);
-  if (error) throw new Error(error.message);
+  validateSupabaseConnection();
+  const client = supabaseAdmin!;
+  const { error } = await client.from("brands").update(payload).eq("slug", slug).eq("category_id", categoryId);
+  if (error) throw new Error(`Failed to update brand: ${error.message}`);
   return { success: true };
 }
 
 export async function adminDeleteBrand(slug: string, categoryId: string) {
-  if (!supabaseAdmin) throw new Error("Supabase Admin not configured");
-  const { error } = await supabaseAdmin.from("brands").delete().eq("slug", slug).eq("category_id", categoryId);
-  if (error) throw new Error(error.message);
+  validateSupabaseConnection();
+  const client = supabaseAdmin!;
+  const { error } = await client.from("brands").delete().eq("slug", slug).eq("category_id", categoryId);
+  if (error) throw new Error(`Failed to delete brand: ${error.message}`);
   return { success: true };
 }
 
 export async function adminAddProduct(payload: any) {
-  if (!supabaseAdmin) throw new Error("Supabase Admin not configured");
-  const { data, error } = await supabaseAdmin.from("products").insert(payload).select("id").single();
-  if (error) throw new Error(error.message);
+  validateSupabaseConnection();
+  const client = supabaseAdmin!;
+  
+  // Validate required fields
+  if (!payload.name || typeof payload.name !== 'string' || payload.name.trim().length === 0) {
+    throw new Error("Product name is required and must be a non-empty string");
+  }
+  if (!payload.category_id || typeof payload.category_id !== 'string') {
+    throw new Error("Product category_id is required and must be a string");
+  }
+  if (!payload.brand_id || typeof payload.brand_id !== 'string') {
+    throw new Error("Product brand_id is required and must be a string");
+  }
+  
+  const { data, error } = await client.from("products").insert(payload).select("id").single();
+  if (error) throw new Error(`Failed to add product: ${error.message}`);
   return { success: true, id: data.id };
 }
 
 export async function adminUpdateProduct(id: string, payload: any) {
-  if (!supabaseAdmin) throw new Error("Supabase Admin not configured");
-  const { error } = await supabaseAdmin.from("products").update(payload).eq("id", id);
-  if (error) throw new Error(error.message);
+  validateSupabaseConnection();
+  const client = supabaseAdmin!;
+  
+  // Validate price if provided
+  if (payload.discount_price !== undefined) {
+    const price = Number(payload.discount_price);
+    if (!Number.isFinite(price) || price < 0) {
+      throw new Error("Discount price must be a valid non-negative number");
+    }
+  }
+  if (payload.original_price !== undefined) {
+    const price = Number(payload.original_price);
+    if (!Number.isFinite(price) || price < 0) {
+      throw new Error("Original price must be a valid non-negative number");
+    }
+  }
+  
+  const { error } = await client.from("products").update(payload).eq("id", id);
+  if (error) throw new Error(`Failed to update product: ${error.message}`);
   return { success: true };
 }
 
 export async function adminDeleteProduct(id: string) {
-  if (!supabaseAdmin) throw new Error("Supabase Admin not configured");
-  const { error } = await supabaseAdmin.from("products").delete().eq("id", id);
-  if (error) throw new Error(error.message);
+  validateSupabaseConnection();
+  const client = supabaseAdmin!;
+  const { error } = await client.from("products").delete().eq("id", id);
+  if (error) throw new Error(`Failed to delete product: ${error.message}`);
   return { success: true };
 }
 
 export async function adminUpsertProductImages(images: any[], productId: string) {
-  if (!supabaseAdmin) throw new Error("Supabase Admin not configured");
+  validateSupabaseConnection();
+  const client = supabaseAdmin!;
   // Delete existing first
-  await supabaseAdmin.from("product_images").delete().eq("product_id", productId);
+  await client.from("product_images").delete().eq("product_id", productId);
   if (images.length > 0) {
-    const { error } = await supabaseAdmin.from("product_images").insert(images);
-    if (error) throw new Error(error.message);
+    const { error } = await client.from("product_images").insert(images);
+    if (error) throw new Error(`Failed to upsert product images: ${error.message}`);
   }
   return { success: true };
 }
 
 export async function adminUpsertProductVariants(variants: any[], productId: string) {
-  if (!supabaseAdmin) throw new Error("Supabase Admin not configured");
+  validateSupabaseConnection();
+  const client = supabaseAdmin!;
   // Delete existing first
-  await supabaseAdmin.from("product_variants").delete().eq("product_id", productId);
+  await client.from("product_variants").delete().eq("product_id", productId);
   if (variants.length > 0) {
-    const { error } = await supabaseAdmin.from("product_variants").insert(variants);
-    if (error) throw new Error(error.message);
+    const { error } = await client.from("product_variants").insert(variants);
+    if (error) throw new Error(`Failed to upsert product variants: ${error.message}`);
   }
   return { success: true };
 }

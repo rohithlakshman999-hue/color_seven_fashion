@@ -7,6 +7,7 @@ import {
   useEffect,
   useCallback,
   useMemo,
+  useRef,
   ReactNode,
 } from "react";
 import {
@@ -47,29 +48,35 @@ interface ProductContextType {
 const ProductContext = createContext<ProductContextType | undefined>(undefined);
 
 export function ProductProvider({ children }: { children: ReactNode }) {
-  const [products, setProducts] = useState<Product[]>(() =>
-    typeof window !== "undefined" ? getProductsSync() : []
-  );
+  const [products, setProducts] = useState<Product[]>([]);
   const [loaded, setLoaded] = useState(false);
+  const mountedRef = useRef(false);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   const refresh = useCallback(async () => {
     const data = await refreshProducts();
-    setProducts(data);
+    if (mountedRef.current) {
+      setProducts(data);
+    }
   }, []);
 
   useEffect(() => {
     let active = true;
     (async () => {
       try {
-        const data = await loadProducts();
-        if (active) setProducts(data);
+        const data = await loadProducts(true);
+        if (active && mountedRef.current) setProducts(data);
       } catch (error) {
         console.error("Failed to load products:", error);
-        // Fallback to local products if load fails
-        const local = getProductsSync();
-        if (active && local.length > 0) setProducts(local);
+        // Always set loaded to true even on error to prevent hanging
       } finally {
-        if (active) setLoaded(true);
+        if (active && mountedRef.current) setLoaded(true);
       }
     })();
     return () => {
@@ -77,37 +84,34 @@ export function ProductProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  useEffect(() => {
-    const onStorage = (e: StorageEvent) => {
-      if (
-        e.key?.startsWith("colour_seven_products") ||
-        e.key === "colour_seven_products_customized"
-      ) {
-        void refresh();
-      }
-    };
-    window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
-  }, [refresh]);
-
   const addProduct = useCallback(async (product: Omit<Product, "id">) => {
-    const created = await storeAddProduct(product);
-    setProducts((prev) => [...prev, created]);
+    await storeAddProduct(product);
+    // Refresh from store to get latest data including any server-side changes
+    const latest = await loadProducts(true);
+    if (mountedRef.current) {
+      setProducts(latest);
+    }
   }, []);
 
   const updateProduct = useCallback(
     async (id: string, updates: Partial<Product>) => {
       await storeUpdateProduct(id, updates);
-      setProducts((prev) =>
-        prev.map((p) => (p.id === id ? { ...p, ...updates } : p))
-      );
+      // Refresh from store to get latest data including any server-side changes
+      const latest = await loadProducts(true);
+      if (mountedRef.current) {
+        setProducts(latest);
+      }
     },
     []
   );
 
   const deleteProduct = useCallback(async (id: string) => {
     await storeDeleteProduct(id);
-    setProducts((prev) => prev.filter((p) => p.id !== id));
+    // Refresh from store to get latest data including any server-side changes
+    const latest = await loadProducts(true);
+    if (mountedRef.current) {
+      setProducts(latest);
+    }
   }, []);
 
   const getProductById = useCallback(

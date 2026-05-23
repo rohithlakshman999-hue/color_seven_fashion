@@ -311,6 +311,9 @@ CREATE POLICY "Allow insert on product_variants" ON product_variants FOR INSERT 
 CREATE POLICY "Allow update on product_variants" ON product_variants FOR UPDATE USING (true);
 CREATE POLICY "Allow delete on product_variants" ON product_variants FOR DELETE USING (true);
 
+GRANT ALL PRIVILEGES ON TABLE product_images TO authenticated, anon;
+GRANT ALL PRIVILEGES ON TABLE product_variants TO authenticated, anon;
+
 -- Inventory Policies
 CREATE POLICY "Allow select on inventory" ON inventory FOR SELECT USING (true);
 CREATE POLICY "Allow insert on inventory" ON inventory FOR INSERT WITH CHECK (true);

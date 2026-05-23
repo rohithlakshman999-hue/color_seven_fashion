@@ -190,7 +190,7 @@ export default function AddProductPage() {
   const normalizePriceValue = (value: string) => {
     const cleaned = value.trim().replace(/[^\d.]/g, "");
     const parsed = Number(cleaned);
-    return Number.isFinite(parsed) ? Math.round(parsed) : 0;
+    return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
   };
 
   const handleSubmit = async (e: FormEvent) => {

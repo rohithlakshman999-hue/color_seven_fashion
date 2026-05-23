@@ -29,8 +29,14 @@ export default function AdminProductsPage() {
   });
 
   const handleDelete = async (id: string) => {
-    await deleteProduct(id);
-    setDeleteConfirm(null);
+    try {
+      await deleteProduct(id);
+    } catch (error: any) {
+      console.error("Failed to delete product:", error);
+      alert(error?.message || "Failed to delete product");
+    } finally {
+      setDeleteConfirm(null);
+    }
   };
 
   return (

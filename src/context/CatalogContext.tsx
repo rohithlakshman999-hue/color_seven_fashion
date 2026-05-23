@@ -6,6 +6,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   ReactNode,
 } from "react";
@@ -45,14 +46,26 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
     brands: [],
   });
   const [loading, setLoading] = useState(true);
+  const mountedRef = useRef(false);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   const applyCatalog = useCallback((data: CatalogData) => {
-    setCatalog(data);
+    if (mountedRef.current) {
+      setCatalog(data);
+    }
   }, []);
 
   const refresh = useCallback(async () => {
     const data = await refreshCatalog();
-    applyCatalog(data);
+    if (mountedRef.current) {
+      applyCatalog(data);
+    }
   }, [applyCatalog]);
 
   useEffect(() => {
@@ -60,9 +73,12 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
     (async () => {
       try {
         const data = await loadCatalog();
-        if (active) applyCatalog(data);
+        if (active && mountedRef.current) applyCatalog(data);
+      } catch (error) {
+        console.error("Failed to load catalog:", error);
+        // Always set loading to false even on error to prevent hanging
       } finally {
-        if (active) setLoading(false);
+        if (active && mountedRef.current) setLoading(false);
       }
     })();
     return () => {
@@ -70,19 +86,43 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
     };
   }, [applyCatalog]);
 
-  useEffect(() => {
-    const onStorage = (e: StorageEvent) => {
-      if (
-        e.key?.startsWith("colour_seven_categories") ||
-        e.key?.startsWith("colour_seven_brands") ||
-        e.key === "colour_seven_catalog_customized"
-      ) {
-        void refresh();
-      }
-    };
-    window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
-  }, [refresh]);
+  const addCategoryWithRefresh = useCallback(async (data: Parameters<typeof addCategory>[0]) => {
+    const result = await addCategory(data);
+    const latest = await loadCatalog(true);
+    applyCatalog(latest);
+    return result;
+  }, [addCategory, applyCatalog]);
+
+  const updateCategoryWithRefresh = useCallback(async (id: string, updates: Parameters<typeof updateCategory>[1]) => {
+    await updateCategory(id, updates);
+    const latest = await loadCatalog(true);
+    applyCatalog(latest);
+  }, [updateCategory, applyCatalog]);
+
+  const deleteCategoryWithRefresh = useCallback(async (id: string) => {
+    await deleteCategory(id);
+    const latest = await loadCatalog(true);
+    applyCatalog(latest);
+  }, [deleteCategory, applyCatalog]);
+
+  const addBrandWithRefresh = useCallback(async (data: Parameters<typeof addBrand>[0]) => {
+    const result = await addBrand(data);
+    const latest = await loadCatalog(true);
+    applyCatalog(latest);
+    return result;
+  }, [addBrand, applyCatalog]);
+
+  const updateBrandWithRefresh = useCallback(async (id: string, updates: Parameters<typeof updateBrand>[1]) => {
+    await updateBrand(id, updates);
+    const latest = await loadCatalog(true);
+    applyCatalog(latest);
+  }, [updateBrand, applyCatalog]);
+
+  const deleteBrandWithRefresh = useCallback(async (id: string) => {
+    await deleteBrand(id);
+    const latest = await loadCatalog(true);
+    applyCatalog(latest);
+  }, [deleteBrand, applyCatalog]);
 
   const value = useMemo(
     () => ({
@@ -91,14 +131,14 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
       loading,
       syncedToCloud: isSupabaseConfigured,
       refresh,
-      addCategory,
-      updateCategory,
-      deleteCategory,
-      addBrand,
-      updateBrand,
-      deleteBrand,
+      addCategory: addCategoryWithRefresh,
+      updateCategory: updateCategoryWithRefresh,
+      deleteCategory: deleteCategoryWithRefresh,
+      addBrand: addBrandWithRefresh,
+      updateBrand: updateBrandWithRefresh,
+      deleteBrand: deleteBrandWithRefresh,
     }),
-    [catalog, loading, refresh]
+    [catalog, loading, refresh, addCategoryWithRefresh, updateCategoryWithRefresh, deleteCategoryWithRefresh, addBrandWithRefresh, updateBrandWithRefresh, deleteBrandWithRefresh]
   );
 
   return (
