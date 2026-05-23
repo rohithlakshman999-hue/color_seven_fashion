@@ -50,7 +50,9 @@ function buildDefaultCatalog(): CatalogData {
     };
   });
 
-  return { categories, brands };
+  const sortedBrands = brands.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base', numeric: true }));
+
+  return { categories, brands: sortedBrands };
 }
 
 function normalizeBrands(brands: Brand[]): Brand[] {
@@ -129,7 +131,11 @@ async function fetchRemoteCatalog(): Promise<CatalogData | null> {
       };
     });
 
-    return { categories, brands: normalizeBrands(brands) };
+    const filteredBrands = normalizeBrands(brands)
+      .filter((b) => b.category_id === "watches")
+      .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base", numeric: true }));
+
+    return { categories, brands: filteredBrands };
   } catch (error: any) {
     console.error("Supabase error:", {
       message: error?.message,

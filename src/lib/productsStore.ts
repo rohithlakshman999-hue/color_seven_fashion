@@ -10,7 +10,7 @@ function buildDefaultProducts(): Product[] {
   return defaultProducts.map((p) => ({
     ...p,
     brand: p.brand || "Colour Seven",
-  }));
+  })).sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base', numeric: true }));
 }
 
 async function fetchRemoteProducts(): Promise<Product[] | null> {
@@ -43,7 +43,7 @@ async function fetchRemoteProducts(): Promise<Product[] | null> {
 
     if (!data?.length) return [];
 
-    return data.map((row) => {
+    const mapped = data.map((row) => {
       const r = row as Record<string, unknown>;
       const brandObj = r.brands as { name?: string } | null;
       const catObj = r.categories as { slug?: string } | null;
@@ -94,6 +94,8 @@ async function fetchRemoteProducts(): Promise<Product[] | null> {
         isTrending,
       };
     });
+
+    return mapped.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base', numeric: true }));
   } catch (error: any) {
     console.error("Supabase error:", {
       message: error?.message,
