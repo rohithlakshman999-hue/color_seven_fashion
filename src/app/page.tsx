@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { ArrowRight, Flame, ShieldCheck, Zap, Award, Truck } from "lucide-react";
@@ -43,6 +44,18 @@ export default function Home() {
   const heroSubtitle = heroContent.subtitle || "CLOTHES | SHOES | ACCESSORIES | WATCHES";
   const categoriesTitle = categoriesContent.title || "EXPLORE CATEGORIES";
   const trendingTitle = trendingContent.title || "TRENDING NOW";
+
+  // Split title into parts (e.g. "LEGENDS. STYLE. YOU." -> ["LEGENDS", "STYLE", "YOU"])
+  const titleParts = useMemo(() => {
+    return (heroTitle || "")
+      .split(/[.\s]+/)
+      .map((p) => p.trim().toUpperCase())
+      .filter(Boolean);
+  }, [heroTitle]);
+
+  const word1 = titleParts[0] || "LEGENDS";
+  const word2 = titleParts[1] || "STYLE";
+  const word3 = titleParts[2] || "YOU";
 
   // Define category cards in the exact requested order: Watches, Shoes, Clothes, Accessories
   const categoryCards = [
@@ -145,14 +158,14 @@ export default function Home() {
             transition={{ duration: 0.6, ease: "easeOut" }}
             className="flex flex-col items-center justify-center font-sans tracking-tighter"
           >
-            <h1 className="text-4xl sm:text-3xl md:text-5xl lg:text-6xl xl:text-7.5xl font-black leading-[0.9] text-white">
-              {heroTitle}
+            <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl xl:text-8xl font-black leading-[0.85] text-white uppercase">
+              {word1}.
             </h1>
-            <h1 className="text-4xl sm:text-3xl md:text-5xl lg:text-6xl xl:text-7.5xl font-black leading-[0.9] text-[var(--accent-1)] my-2 filter drop-shadow-[0_0_15px_rgba(207,242,39,0.3)]">
-              STYLE.
+            <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl xl:text-8xl font-black leading-[0.85] text-[var(--accent-1)] my-2 filter drop-shadow-[0_0_15px_rgba(207,242,39,0.3)] uppercase">
+              {word2}.
             </h1>
-            <h1 className="text-4xl sm:text-3xl md:text-5xl lg:text-6xl xl:text-7.5xl font-black leading-[0.9] text-white">
-              YOU.
+            <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl xl:text-8xl font-black leading-[0.85] text-white uppercase">
+              {word3}.
             </h1>
           </motion.div>
 
