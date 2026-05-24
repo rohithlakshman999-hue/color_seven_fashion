@@ -63,25 +63,25 @@ export default function Home() {
       name: "Watches",
       subtext: "TIMELESS PRECISION",
       image: "/images/chrono_watch.png",
-      href: "/shop?category=Watches",
+      href: "/shop/watches",
     },
     {
       name: "Shoes",
       subtext: "FOOTWEAR LEGENDS",
       image: "/images/nike_air_force.png",
-      href: "/shop?category=Shoes",
+      href: "/shop/shoes",
     },
     {
-      name: "Clothes",
+      name: "Clothing",
       subtext: "STREETWEAR APPAREL",
       image: "/images/black_hoodie.png",
-      href: "/shop?category=Clothes",
+      href: "/shop/clothing",
     },
     {
       name: "Accessories",
       subtext: "OUTLAW STYLING",
       image: "/images/baseball_cap.png",
-      href: "/shop?category=Accessories",
+      href: "/shop/accessories",
     },
   ];
 

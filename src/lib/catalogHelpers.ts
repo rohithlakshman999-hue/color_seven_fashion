@@ -6,7 +6,7 @@ export { brandOptionKey } from "@/lib/catalogStore";
 export const PRODUCT_CATEGORIES = [
   "Watches",
   "Shoes",
-  "Clothes",
+  "Clothing",
   "Accessories",
 ] as const;
 
@@ -15,8 +15,8 @@ export type ProductCategory = (typeof PRODUCT_CATEGORIES)[number];
 const SLUG_TO_CATEGORY: Record<string, ProductCategory> = {
   watches: "Watches",
   shoes: "Shoes",
-  clothing: "Clothes",
-  clothes: "Clothes",
+  clothing: "Clothing",
+  clothes: "Clothing",
   accessories: "Accessories",
   bags: "Accessories",
   perfumes: "Accessories",

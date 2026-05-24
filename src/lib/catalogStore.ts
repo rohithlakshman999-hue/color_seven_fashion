@@ -317,12 +317,17 @@ export function getBrandById(id: string): Brand | undefined {
   return getCatalogSync().brands.find((b) => b.id === id);
 }
 
-async function resolveCategoryUuid(slug: string): Promise<string | null> {
+async function resolveCategoryUuid(slugOrId: string): Promise<string | null> {
   if (!supabase) return null;
+  
+  // First check if it's already a UUID (match exact id)
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slugOrId);
+  if (isUuid) return slugOrId;
+
   const { data } = await supabase
     .from("categories")
     .select("id")
-    .eq("slug", slug)
+    .eq("slug", slugOrId)
     .maybeSingle();
   return data?.id ? String(data.id) : null;
 }
@@ -487,15 +492,8 @@ export async function addBrand(
     const refreshed = await loadCatalog(true);
     return refreshed.brands.find((b) => b.id === brand.id) || brand;
   } catch (err: any) {
-    console.error("Supabase error:", {
-      message: err?.message,
-      details: err?.details,
-      hint: err?.hint,
-      code: err?.code,
-      fullError: JSON.stringify(err, null, 2)
-    });
-    
-    throw new Error(err?.message || JSON.stringify(err) || "Unknown error");
+    console.error("Supabase error:", err);
+    throw new Error(err?.message || "Unknown error");
   }
 }
 
@@ -573,16 +571,10 @@ export async function deleteBrand(id: string): Promise<void> {
       throw new Error("Brand not found locally");
     }
 
-    const categoryUuid = await resolveCategoryUuid(brand.category_id);
-    if (!categoryUuid) {
-      throw new Error(`Category "${brand.category_id}" not found in database`);
-    }
-
     const { error } = await supabase
       .from("brands")
       .delete()
-      .eq("slug", brand.slug)
-      .eq("category_id", categoryUuid);
+      .eq("id", brand.id);
 
     if (error) throw error;
 

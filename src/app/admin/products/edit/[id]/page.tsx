@@ -62,7 +62,8 @@ export default function EditProductPage({
   const [customBrand, setCustomBrand] = useState("");
   const [isCustomBrand, setIsCustomBrand] = useState(false);
   const [price, setPrice] = useState("");
-  const [category, setCategory] = useState<"Watches" | "Shoes" | "Clothes" | "Accessories">("Watches");
+  const [stock, setStock] = useState("");
+  const [category, setCategory] = useState<"Watches" | "Shoes" | "Clothing" | "Accessories">("Watches");
   const [description, setDescription] = useState("");
   const [images, setImages] = useState<string[]>([""]);
   const [colors, setColors] = useState<string[]>([]);
@@ -102,6 +103,7 @@ export default function EditProductPage({
     }
 
     setPrice(String(product.price));
+    setStock(String(product.stock ?? 10));
     setCategory(product.category);
     setDescription(product.description);
     setImages(product.images.length > 0 ? [...product.images] : [""]);
@@ -255,6 +257,7 @@ export default function EditProductPage({
         name: name.trim(),
         brand: finalBrand || "Colour Seven",
         price: normalizedPrice,
+        stock: parseInt(stock) || 0,
         category,
         images: validImages,
         description: description.trim(),
@@ -394,6 +397,21 @@ export default function EditProductPage({
               min="0"
               step="1"
               placeholder="1799"
+              className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-white placeholder-zinc-600 focus:border-[var(--accent-1)] focus:outline-none transition-colors"
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-xs uppercase tracking-wider text-zinc-500 font-medium">
+              Global Stock *
+            </label>
+            <input
+              type="number"
+              value={stock}
+              onChange={(e) => setStock(e.target.value)}
+              required
+              min="0"
+              step="1"
+              placeholder="10"
               className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-white placeholder-zinc-600 focus:border-[var(--accent-1)] focus:outline-none transition-colors"
             />
           </div>

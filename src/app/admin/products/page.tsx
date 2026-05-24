@@ -12,7 +12,7 @@ const currency = new Intl.NumberFormat("en-IN", {
   maximumFractionDigits: 0,
 });
 
-const categories = ["All", "Watches", "Shoes", "Clothes", "Accessories"] as const;
+const categories = ["All", "Watches", "Shoes", "Clothing", "Accessories"] as const;
 
 export default function AdminProductsPage() {
   const { products, deleteProduct } = useProducts();

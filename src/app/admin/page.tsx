@@ -54,7 +54,7 @@ export default function AdminDashboard() {
   const categoryCounts = {
     Watches: products.filter((p) => p.category === "Watches").length,
     Shoes: products.filter((p) => p.category === "Shoes").length,
-    Clothes: products.filter((p) => p.category === "Clothes").length,
+    Clothing: products.filter((p) => p.category === "Clothing").length,
     Accessories: products.filter((p) => p.category === "Accessories").length,
   };
 

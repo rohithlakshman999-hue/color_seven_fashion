@@ -25,8 +25,8 @@ const categories = [
     accent: "#CFF227",
   },
   {
-    name: "Clothes",
-    slug: "clothes",
+    name: "Clothing",
+    slug: "clothing",
     tagline: "STREETWEAR APPAREL",
     description: "Oversized hoodies, graphic tees & joggers — the uniform of the bold.",
     image: "/images/black_hoodie.png",

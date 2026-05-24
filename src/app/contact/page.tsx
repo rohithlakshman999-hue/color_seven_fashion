@@ -7,12 +7,22 @@ import { useContactInfo } from "@/context/ContactInfoContext";
 export default function Contact() {
   const { contactInfo, loaded } = useContactInfo();
 
-  const phone = contactInfo?.phone_number || "+91 9353812197";
-  const whatsapp = contactInfo?.whatsapp_number || "+91 9353812197";
-  const email = contactInfo?.email || "support@colourseven.com";
-  const city = contactInfo?.city || "Bangalore";
-  const state = contactInfo?.state || "India";
-  const address = contactInfo?.address || "";
+  const fallbackInfo = {
+    store_name: "Colour Seven",
+    phone: "8122228386",
+    whatsapp: "8122228386",
+    email: "support@colourseven.com",
+    city: "Chennai",
+    state: "Thiruvottiyur",
+    address: ""
+  };
+
+  const phone = contactInfo?.phone_number || fallbackInfo.phone;
+  const whatsapp = contactInfo?.whatsapp_number || fallbackInfo.whatsapp;
+  const email = contactInfo?.email || fallbackInfo.email;
+  const city = contactInfo?.city || fallbackInfo.city;
+  const state = contactInfo?.state || fallbackInfo.state;
+  const address = contactInfo?.address || fallbackInfo.address;
 
   return (
     <div className="pt-16 pb-24 bg-black min-h-screen text-white">

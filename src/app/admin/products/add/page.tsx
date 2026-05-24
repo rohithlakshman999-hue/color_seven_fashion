@@ -228,6 +228,7 @@ export default function AddProductPage() {
           `${formData.name} — ${selectedBrand.name}`,
         sizes: formData.sizes.length > 0 ? formData.sizes : ["One Size"],
         colors: formData.colors.length > 0 ? formData.colors : ["Default"],
+        stock: parseInt(formData.stockQuantity) || 0,
         isNew: formData.featured,
         isTrending: formData.isTrending,
       });

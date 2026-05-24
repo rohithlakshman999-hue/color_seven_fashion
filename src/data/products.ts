@@ -3,11 +3,12 @@ export interface Product {
   name: string;
   brand: string;
   price: number;
-  category: "Watches" | "Shoes" | "Clothes" | "Accessories";
+  category: "Watches" | "Shoes" | "Clothing" | "Accessories";
   images: string[];
   description: string;
   sizes: string[];
   colors: string[];
+  stock: number;
   isNew: boolean;
   isTrending?: boolean;
 }
@@ -18,7 +19,8 @@ export const products: Product[] = [
     name: "OVERSIZED HOODIE",
     brand: "Colour Seven",
     price: 1799,
-    category: "Clothes",
+    category: "Clothing",
+    stock: 10,
     images: [
       "/images/black_hoodie.png"
     ],
@@ -33,6 +35,7 @@ export const products: Product[] = [
     brand: "Colour Seven",
     price: 8495,
     category: "Shoes",
+    stock: 10,
     images: [
       "/images/nike_air_force.png"
     ],
@@ -47,6 +50,7 @@ export const products: Product[] = [
     brand: "Colour Seven",
     price: 2499,
     category: "Watches",
+    stock: 10,
     images: [
       "/images/chrono_watch.png"
     ],
@@ -61,6 +65,7 @@ export const products: Product[] = [
     brand: "Colour Seven",
     price: 699,
     category: "Accessories",
+    stock: 10,
     images: [
       "/images/baseball_cap.png"
     ],
@@ -74,7 +79,8 @@ export const products: Product[] = [
     name: "GRAPHIC OVERSIZED TEE",
     brand: "Colour Seven",
     price: 1299,
-    category: "Clothes",
+    category: "Clothing",
+    stock: 10,
     images: [
       "/images/graphic_tee.png"
     ],
@@ -89,6 +95,7 @@ export const products: Product[] = [
     brand: "Colour Seven",
     price: 1199,
     category: "Accessories",
+    stock: 10,
     images: [
       "/images/cuban_chain.png"
     ],
@@ -103,6 +110,7 @@ export const products: Product[] = [
     brand: "Colour Seven",
     price: 3499,
     category: "Watches",
+    stock: 10,
     images: [
       "/images/chrono_watch.png"
     ],
@@ -117,6 +125,7 @@ export const products: Product[] = [
     brand: "Colour Seven",
     price: 5999,
     category: "Shoes",
+    stock: 10,
     images: [
       "/images/nike_air_force.png"
     ],
@@ -130,7 +139,8 @@ export const products: Product[] = [
     name: "DISTRESSED STREETWEAR JOGGER",
     brand: "Colour Seven",
     price: 2499,
-    category: "Clothes",
+    category: "Clothing",
+    stock: 10,
     images: [
       "/images/black_hoodie.png"
     ],
@@ -145,6 +155,7 @@ export const products: Product[] = [
     brand: "Colour Seven",
     price: 899,
     category: "Accessories",
+    stock: 10,
     images: [
       "/images/baseball_cap.png"
     ],
@@ -159,6 +170,7 @@ export const products: Product[] = [
     brand: "Colour Seven",
     price: 1999,
     category: "Watches",
+    stock: 10,
     images: [
       "/images/chrono_watch.png"
     ],
@@ -173,6 +185,7 @@ export const products: Product[] = [
     brand: "Colour Seven",
     price: 3199,
     category: "Accessories",
+    stock: 10,
     images: [
       "/images/baseball_cap.png"
     ],
@@ -198,7 +211,7 @@ export const collections = [
   },
   {
     id: "ed721af0-9491-49b2-94fe-26952e782318",
-    name: "Clothes",
+    name: "Clothing",
     image: "/images/black_hoodie.png",
     description: "Premium streetwear essential apparel."
   },

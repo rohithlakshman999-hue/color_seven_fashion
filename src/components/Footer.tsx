@@ -1,7 +1,14 @@
+"use client";
+
 import Link from "next/link";
 import Logo from "./Logo";
+import { useCatalog } from "@/context/CatalogContext";
 
 export default function Footer() {
+  const { categories } = useCatalog();
+  const shopLinks = categories
+    .filter((c) => c.is_active)
+    .sort((a, b) => a.display_order - b.display_order);
   return (
     <footer className="bg-black pt-16 pb-8 text-white border-t border-white/10">
       <div className="container mx-auto px-4 md:px-8">
@@ -30,18 +37,13 @@ export default function Footer() {
               <li>
                 <Link href="/shop" className="hover:text-white transition-luxury">All Products</Link>
               </li>
-              <li>
-                <Link href="/shop/watches" className="hover:text-white transition-luxury">Watches</Link>
-              </li>
-              <li>
-                <Link href="/shop/shoes" className="hover:text-white transition-luxury">Footwear</Link>
-              </li>
-              <li>
-                <Link href="/shop/clothes" className="hover:text-white transition-luxury">Clothing</Link>
-              </li>
-              <li>
-                <Link href="/shop/accessories" className="hover:text-white transition-luxury">Accessories</Link>
-              </li>
+              {shopLinks.map((category) => (
+                <li key={category.id}>
+                  <Link href={`/shop/${category.slug}`} className="hover:text-white transition-luxury">
+                    {category.name}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
 

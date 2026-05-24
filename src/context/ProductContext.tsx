@@ -25,11 +25,12 @@ export interface Product {
   name: string;
   brand: string;
   price: number;
-  category: "Watches" | "Shoes" | "Clothes" | "Accessories";
+  category: "Watches" | "Shoes" | "Clothing" | "Accessories";
   images: string[];
   description: string;
   sizes: string[];
   colors: string[];
+  stock: number;
   isNew: boolean;
   isTrending?: boolean;
 }

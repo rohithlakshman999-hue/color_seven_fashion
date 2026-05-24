@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { Menu, X, ShoppingBag, Search, User, Heart, ChevronDown, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Logo from "./Logo";
+import { useCatalog } from "@/context/CatalogContext";
 
 const navLinks = [
   { name: "Home", href: "/" },
@@ -14,12 +15,7 @@ const navLinks = [
   { name: "Contact Us", href: "/contact" },
 ];
 
-const shopSubLinks = [
-  { name: "Watches", href: "/shop/watches" },
-  { name: "Shoes", href: "/shop/shoes" },
-  { name: "Clothes", href: "/shop/clothes" },
-  { name: "Accessories", href: "/shop/accessories" },
-];
+
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -27,6 +23,12 @@ export default function Navbar() {
   const [isShopHovered, setIsShopHovered] = useState(false);
   const [mobileShopOpen, setMobileShopOpen] = useState(false);
   const pathname = usePathname();
+  const { categories } = useCatalog();
+
+  const shopSubLinks = categories
+    .filter((c) => c.is_active)
+    .sort((a, b) => a.display_order - b.display_order)
+    .map((c) => ({ name: c.name, href: `/shop/${c.slug}` }));
 
   useEffect(() => {
     const handleScroll = () => {

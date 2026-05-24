@@ -10,6 +10,7 @@ function buildDefaultProducts(): Product[] {
   return defaultProducts.map((p) => ({
     ...p,
     brand: p.brand || "Colour Seven",
+    stock: p.stock ?? 10,
   })).sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base', numeric: true }));
 }
 
@@ -22,6 +23,7 @@ async function fetchRemoteProducts(): Promise<Product[] | null> {
       .select(
         `
         id,
+        slug,
         name,
         discount_price,
         original_price,
@@ -32,7 +34,7 @@ async function fetchRemoteProducts(): Promise<Product[] | null> {
         brands ( name ),
         categories ( slug ),
         product_images ( image_url, display_order ),
-        product_variants ( size, color )
+        product_variants ( size, color, stock_quantity )
       `
       );
 
@@ -59,13 +61,15 @@ async function fetchRemoteProducts(): Promise<Product[] | null> {
         images = ["/images/chrono_watch.png"];
       }
 
-      const rawVariants = r.product_variants as { size?: string; color?: string }[] | null;
+      const rawVariants = r.product_variants as { size?: string; color?: string; stock_quantity?: number }[] | null;
       const sizesSet = new Set<string>();
       const colorsSet = new Set<string>();
+      let totalStock = 0;
       if (rawVariants && Array.isArray(rawVariants)) {
         rawVariants.forEach((v) => {
           if (v.size) sizesSet.add(v.size);
           if (v.color) colorsSet.add(v.color);
+          if (v.stock_quantity) totalStock += Number(v.stock_quantity);
         });
       }
       const sizes = sizesSet.size > 0 ? Array.from(sizesSet) : ["One Size"];
@@ -82,6 +86,7 @@ async function fetchRemoteProducts(): Promise<Product[] | null> {
 
       return {
         id: String(r.id),
+        slug: String(r.slug),
         name: String(r.name),
         brand: brandObj?.name || "Colour Seven",
         price: finalPrice,
@@ -90,6 +95,7 @@ async function fetchRemoteProducts(): Promise<Product[] | null> {
         description: String(r.full_description || r.short_description || ""),
         sizes,
         colors,
+        stock: totalStock,
         isNew: Boolean(r.featured),
         isTrending,
       };
@@ -339,8 +345,8 @@ export async function addProduct(product: Omit<Product, "id">): Promise<Product>
             size: s,
             color: c,
             sku: `SKU-${data.id}-${variantIndex++}-${Math.random().toString(36).slice(2, 5)}`,
-            stock_quantity: 10,
-            stock_status: "in_stock",
+            stock_quantity: product.stock ?? 10,
+            stock_status: (product.stock ?? 10) > 0 ? "in_stock" : "out_of_stock",
           });
         }
       }

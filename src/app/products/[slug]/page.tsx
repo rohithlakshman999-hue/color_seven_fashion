@@ -2,7 +2,7 @@
 
 import { use, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { Brand, Category, Product, ProductImage } from "@/types/database";
+import { Brand, Category, Product, ProductImage, ProductVariant } from "@/types/database";
 import {
   ArrowLeft,
   Heart,
@@ -10,6 +10,7 @@ import {
   ShieldCheck,
   ShoppingBag,
   Truck,
+  MessageCircle,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -17,6 +18,7 @@ type ProductDetail = Product & {
   brands?: Brand | null;
   categories?: Category | null;
   product_images?: ProductImage[];
+  product_variants?: ProductVariant[];
 };
 
 export default function SupabaseProductDetail({
@@ -27,6 +29,8 @@ export default function SupabaseProductDetail({
   const { slug } = use(params);
   const [product, setProduct] = useState<ProductDetail | null>(null);
   const [activeImage, setActiveImage] = useState(0);
+  const [selectedSize, setSelectedSize] = useState<string | null>(null);
+  const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -41,12 +45,20 @@ export default function SupabaseProductDetail({
         setLoading(true);
         const { data, error: productError } = await supabase
           .from("products")
-          .select("*, brands(*), categories(*), product_images(*)")
+          .select("*, brands(*), categories(*), product_images(*), product_variants(*)")
           .eq("slug", slug)
           .eq("is_active", true)
           .single();
 
         if (productError) throw productError;
+
+        const variants = data.product_variants || [];
+        const sizes = Array.from(new Set(variants.map((v: ProductVariant) => v.size).filter(Boolean))) as string[];
+        const colors = Array.from(new Set(variants.map((v: ProductVariant) => v.color).filter(Boolean))) as string[];
+
+        if (sizes.length > 0) setSelectedSize(sizes[0]);
+        if (colors.length > 0) setSelectedColor(colors[0]);
+
         setProduct({
           ...data,
           product_images: [...(data.product_images || [])].sort(
@@ -185,12 +197,71 @@ export default function SupabaseProductDetail({
               </div>
             ) : null}
 
+            {product.product_variants && product.product_variants.length > 0 && (
+              <div className="mb-8 space-y-6">
+                {/* Sizes */}
+                {Array.from(new Set(product.product_variants.map(v => v.size).filter(Boolean))).length > 0 && (
+                  <div className="space-y-3">
+                    <span className="text-xs font-bold uppercase tracking-widest text-zinc-500">Size</span>
+                    <div className="flex flex-wrap gap-3">
+                      {Array.from(new Set(product.product_variants.map(v => v.size).filter(Boolean))).map((size) => (
+                        <button
+                          key={size as string}
+                          onClick={() => setSelectedSize(selectedSize === size ? null : size as string)}
+                          className={`flex h-10 min-w-[3rem] items-center justify-center rounded border px-4 text-xs font-bold transition-all ${
+                            selectedSize === size
+                              ? "border-[#c9a227] bg-[#c9a227] text-black shadow-[0_0_15px_rgba(201,162,39,0.3)]"
+                              : "border-white/10 bg-transparent text-zinc-300 hover:border-white/30 hover:bg-white/5"
+                          }`}
+                        >
+                          {size as string}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Colors */}
+                {Array.from(new Set(product.product_variants.map(v => v.color).filter(Boolean))).length > 0 && (
+                  <div className="space-y-3">
+                    <span className="text-xs font-bold uppercase tracking-widest text-zinc-500">Color</span>
+                    <div className="flex flex-wrap gap-3">
+                      {Array.from(new Set(product.product_variants.map(v => v.color).filter(Boolean))).map((color) => (
+                        <button
+                          key={color as string}
+                          onClick={() => setSelectedColor(selectedColor === color ? null : color as string)}
+                          className={`flex h-10 items-center justify-center rounded border px-4 text-xs font-bold transition-all ${
+                            selectedColor === color
+                              ? "border-[#c9a227] bg-[#c9a227] text-black shadow-[0_0_15px_rgba(201,162,39,0.3)]"
+                              : "border-white/10 bg-transparent text-zinc-300 hover:border-white/30 hover:bg-white/5"
+                          }`}
+                        >
+                          {color as string}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="mb-12 flex flex-col gap-4 sm:flex-row">
-              <button className="flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-[#c9a227] text-xs font-black uppercase tracking-widest text-black hover:bg-white">
+              <button className="flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-[#c9a227] text-xs font-black uppercase tracking-widest text-black hover:bg-white transition-colors">
                 <ShoppingBag className="h-4 w-4" />
                 Add to Cart
               </button>
-              <button className="flex h-12 w-full items-center justify-center rounded-xl border border-white/10 bg-[#070707] text-zinc-400 hover:border-white/30 hover:text-white sm:w-12">
+              
+              <a 
+                href={`https://wa.me/918122228386?text=${encodeURIComponent(`Hi, I'm interested in the ${product.name} - Rs. ${product.discount_price}.${selectedSize && selectedSize !== "One Size" ? ` Size: ${selectedSize}.` : ""}${selectedColor && selectedColor !== "Default" ? ` Color: ${selectedColor}.` : ""} Please share more details.`)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-[#25D366] text-xs font-black uppercase tracking-widest text-black hover:brightness-110 transition-all"
+              >
+                <MessageCircle className="h-4 w-4" />
+                WhatsApp Inquiry
+              </a>
+
+              <button className="flex h-12 w-full items-center justify-center rounded-xl border border-white/10 bg-[#070707] text-zinc-400 hover:border-white/30 hover:text-white sm:w-12 transition-colors">
                 <Heart className="h-4 w-4" />
               </button>
             </div>

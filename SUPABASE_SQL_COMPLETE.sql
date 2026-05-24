@@ -252,7 +252,7 @@ ON CONFLICT (section_name) DO NOTHING;
 
 -- Insert default contact info
 INSERT INTO contact_info (whatsapp_number, phone_number, email, address, city, state, postal_code, social_media) VALUES
-  ('+919876543210', '+919876543210', 'contact@colourseven.com', '123 Fashion Street', 'Mumbai', 'Maharashtra', '400001', '{"instagram": "", "twitter": "", "facebook": ""}')
+  ('+918122228386', '+918122228386', 'support@colourseven.com', '', 'Chennai', 'Thiruvottiyur', '', '{"instagram": "", "twitter": "", "facebook": ""}')
 ON CONFLICT DO NOTHING;
 
 -- ==========================================

@@ -8,6 +8,7 @@ import Image from "next/image";
 interface ProductCardProps {
   product: {
     id: string;
+    slug?: string;
     name: string;
     brand?: string;
     price: number;
@@ -33,7 +34,7 @@ function ProductCard({ product }: ProductCardProps) {
             NEW
           </span>
         )}
-        <Link href={`/shop/${product.id}`} className="block w-full h-full">
+        <Link href={`/products/${product.slug || product.id}`} className="relative block w-full h-full">
           <Image
             src={product.images[0] || "/images/chrono_watch.png"}
             alt={product.name}
@@ -61,7 +62,7 @@ function ProductCard({ product }: ProductCardProps) {
             />
           </button>
           <Link
-            href={`/shop/${product.id}`}
+            href={`/products/${product.slug || product.id}`}
             className="p-2 bg-[var(--accent-1)] rounded-full text-black hover:brightness-110 transition-all"
             aria-label="View product"
           >
@@ -70,7 +71,7 @@ function ProductCard({ product }: ProductCardProps) {
         </div>
       </div>
 
-      <Link href={`/shop/${product.id}`} className="flex flex-col flex-1">
+      <Link href={`/products/${product.slug || product.id}`} className="flex flex-col flex-1">
         {product.brand && (
           <span className="text-[10px] uppercase tracking-widest text-zinc-500 font-bold mb-1">
             {product.brand}
