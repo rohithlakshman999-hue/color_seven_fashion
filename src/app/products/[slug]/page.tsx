@@ -246,8 +246,8 @@ export default function SupabaseProductDetail({
             )}
 
             <div className="mb-12 flex flex-col gap-4 sm:flex-row">
-              <button className="flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-[#c9a227] text-xs font-black uppercase tracking-widest text-black hover:bg-white transition-colors">
-                <ShoppingBag className="h-4 w-4" />
+              <button className="flex min-h-[3.5rem] flex-1 shrink-0 items-center justify-center gap-2 rounded-xl bg-[#c9a227] text-sm font-black uppercase tracking-widest text-black hover:bg-white transition-colors">
+                <ShoppingBag className="h-5 w-5" />
                 Add to Cart
               </button>
               
@@ -255,14 +255,14 @@ export default function SupabaseProductDetail({
                 href={`https://wa.me/918122228386?text=${encodeURIComponent(`Hi, I'm interested in the ${product.name} - Rs. ${product.discount_price}.${selectedSize && selectedSize !== "One Size" ? ` Size: ${selectedSize}.` : ""}${selectedColor && selectedColor !== "Default" ? ` Color: ${selectedColor}.` : ""} Please share more details.`)}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-[#25D366] text-xs font-black uppercase tracking-widest text-black hover:brightness-110 transition-all"
+                className="flex min-h-[3.5rem] flex-1 shrink-0 items-center justify-center gap-2 rounded-xl bg-[#25D366] text-sm font-black uppercase tracking-widest text-black hover:brightness-110 transition-all"
               >
-                <MessageCircle className="h-4 w-4" />
+                <MessageCircle className="h-5 w-5" />
                 WhatsApp Inquiry
               </a>
 
-              <button className="flex h-12 w-full items-center justify-center rounded-xl border border-white/10 bg-[#070707] text-zinc-400 hover:border-white/30 hover:text-white sm:w-12 transition-colors">
-                <Heart className="h-4 w-4" />
+              <button className="flex min-h-[3.5rem] w-full shrink-0 items-center justify-center rounded-xl border border-white/10 bg-[#070707] text-zinc-400 hover:border-white/30 hover:text-white sm:w-14 transition-colors">
+                <Heart className="h-5 w-5" />
               </button>
             </div>
 
