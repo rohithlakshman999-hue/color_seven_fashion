@@ -56,8 +56,7 @@ export default function SupabaseProductDetail({
         const sizes = Array.from(new Set(variants.map((v: ProductVariant) => v.size).filter(Boolean))) as string[];
         const colors = Array.from(new Set(variants.map((v: ProductVariant) => v.color).filter(Boolean))) as string[];
 
-        if (sizes.length > 0) setSelectedSize(sizes[0]);
-        if (colors.length > 0) setSelectedColor(colors[0]);
+        // Do not pre-select size and color by default.
 
         setProduct({
           ...data,
