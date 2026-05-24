@@ -132,7 +132,6 @@ async function fetchRemoteCatalog(): Promise<CatalogData | null> {
     });
 
     const filteredBrands = normalizeBrands(brands)
-      .filter((b) => b.category_id === "watches")
       .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base", numeric: true }));
 
     return { categories, brands: filteredBrands };
