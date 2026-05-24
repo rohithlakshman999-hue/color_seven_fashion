@@ -7,7 +7,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import ProductCard from "@/components/ProductCard";
 import { useProducts } from "@/context/ProductContext";
 import { useCatalog } from "@/context/CatalogContext";
-import { ArrowLeft, Watch, Search, SlidersHorizontal, Tag } from "lucide-react";
+import { ArrowLeft, Watch, Search, SlidersHorizontal, Tag, ChevronDown, ChevronUp } from "lucide-react";
 
 const BrandListButton = memo(function BrandListButton({
   name,
@@ -52,6 +52,25 @@ export default function WatchesPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
+  const [isMobileCollapsed, setIsMobileCollapsed] = useState(false);
+  const [isScrolling, setIsScrolling] = useState(false);
+
+  const handleBrandSelect = (brandName: string | null) => {
+    setSelectedBrand(brandName);
+    setIsMobileCollapsed(true);
+    setIsScrolling(true);
+    
+    setTimeout(() => {
+      const element = document.getElementById("products-section");
+      if (element) {
+        element.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }
+      setTimeout(() => setIsScrolling(false), 800);
+    }, 100);
+  };
 
   useEffect(() => {
     setMounted(true);
@@ -153,18 +172,59 @@ export default function WatchesPage() {
           {/* LEFT COLUMN: Brand Explorer Directory (Collapsible/Searchable) */}
           <div className="lg:col-span-1 space-y-6">
             <div className="bg-[#030303] border border-white/5 rounded-2xl p-5 space-y-4">
-              <div className="flex items-center justify-between border-b border-white/5 pb-3">
+              <div 
+                className="flex items-center justify-between border-b border-white/5 pb-3 cursor-pointer lg:cursor-default"
+                onClick={() => setIsMobileCollapsed(!isMobileCollapsed)}
+              >
                 <h3 className="text-xs font-black uppercase tracking-widest text-white flex items-center gap-2">
                   <SlidersHorizontal className="w-4 h-4 text-[var(--accent-1)]" />
                   Brands Directory
                 </h3>
-                <span className="text-[10px] bg-white/5 px-2 py-0.5 rounded text-zinc-400 font-bold">
-                  {mounted ? watchBrands.length : 0}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] bg-white/5 px-2 py-0.5 rounded text-zinc-400 font-bold hidden sm:inline-block">
+                    {mounted ? watchBrands.length : 0}
+                  </span>
+                  {isMobileCollapsed ? (
+                    <ChevronDown className="w-4 h-4 text-zinc-400 lg:hidden" />
+                  ) : (
+                    <ChevronUp className="w-4 h-4 text-zinc-400 lg:hidden" />
+                  )}
+                </div>
               </div>
 
+              {/* Collapsed Mobile View Summary */}
+              {isMobileCollapsed && (
+                <div className="lg:hidden flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/5">
+                  <div className="flex items-center gap-2">
+                    <Tag className={`w-3.5 h-3.5 text-[var(--accent-1)] ${isScrolling ? "animate-pulse" : ""}`} />
+                    <span className="text-xs font-bold text-white">
+                      {selectedBrand ? selectedBrand : "All Brands"}
+                    </span>
+                    <span className="text-[10px] text-zinc-500 font-medium">
+                      ({selectedBrand ? (brandProductCounts[selectedBrand] || 0) : watchesProducts.length} items)
+                    </span>
+                    {isScrolling && (
+                      <span className="inline-flex items-center gap-1 text-[9px] text-[var(--accent-1)] font-semibold animate-pulse ml-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-1)] animate-ping" />
+                        loading...
+                      </span>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsMobileCollapsed(false);
+                    }}
+                    className="text-[10px] font-black uppercase tracking-wider text-[var(--accent-1)] hover:underline"
+                  >
+                    Change
+                  </button>
+                </div>
+              )}
+
               {/* Search Brand Input */}
-              <div className="relative">
+              <div className={`relative ${isMobileCollapsed ? "hidden lg:block" : "block"}`}>
                 <input
                   type="text"
                   placeholder="Search brand name..."
@@ -176,9 +236,9 @@ export default function WatchesPage() {
               </div>
 
               {/* Brands selection list */}
-              <div className="max-h-[350px] lg:max-h-[500px] overflow-y-auto pr-1 space-y-1 scrollbar-thin">
+              <div className={`max-h-[350px] lg:max-h-[500px] overflow-y-auto pr-1 space-y-1 scrollbar-thin ${isMobileCollapsed ? "hidden lg:block" : "block"}`}>
                 <button
-                  onClick={() => setSelectedBrand(null)}
+                  onClick={() => handleBrandSelect(null)}
                   className={`w-full text-left px-3 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-between ${
                     selectedBrand === null
                       ? "bg-[var(--accent-1)] text-black"
@@ -197,7 +257,7 @@ export default function WatchesPage() {
                     name={b.name}
                     count={brandProductCounts[b.name] || 0}
                     isActive={selectedBrand === b.name}
-                    onSelect={() => setSelectedBrand(b.name)}
+                    onSelect={() => handleBrandSelect(b.name)}
                   />
                 ))}
               </div>
@@ -205,7 +265,10 @@ export default function WatchesPage() {
           </div>
 
           {/* RIGHT COLUMN: Products Grid sorted by Brand Sections */}
-          <div className="lg:col-span-3 space-y-12">
+          <div 
+            id="products-section"
+            className={`lg:col-span-3 space-y-12 transition-opacity duration-300 ${isScrolling ? "opacity-50 pointer-events-none" : "opacity-100"}`}
+          >
             <AnimatePresence mode="wait">
               {/* Case 1: Store is completely empty */}
               {!mounted ? (
