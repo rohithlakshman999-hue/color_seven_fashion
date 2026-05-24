@@ -126,6 +126,7 @@ async function fetchRemoteCatalog(): Promise<CatalogData | null> {
         display_order: Number(r.display_order) || 0,
         is_active: r.is_active !== false,
         featured: Boolean(r.featured),
+        db_id: String(r.id),
         created_at: String(r.created_at || new Date().toISOString()),
         updated_at: String(r.updated_at || new Date().toISOString()),
       };
@@ -420,7 +421,7 @@ export async function deleteCategory(id: string): Promise<void> {
   }
 
   try {
-    const { error } = await supabase.from("categories").delete().eq("slug", id);
+    const { error } = await supabase.from("categories").delete().eq("id", id);
     if (error) throw error;
 
     // Refresh cache after successful delete
@@ -535,11 +536,13 @@ export async function updateBrand(
       throw new Error(`Category "${brand.category_id}" not found in database`);
     }
 
-    const { error } = await supabase
-      .from("brands")
-      .update(payload)
-      .eq("slug", brand.slug)
-      .eq("category_id", categoryUuid);
+    let query = supabase.from("brands").update(payload);
+    if (brand.db_id) {
+      query = query.eq("id", brand.db_id);
+    } else {
+      query = query.eq("slug", brand.slug).eq("category_id", categoryUuid);
+    }
+    const { error } = await query;
 
     if (error) throw error;
 
@@ -571,10 +574,14 @@ export async function deleteBrand(id: string): Promise<void> {
       throw new Error("Brand not found locally");
     }
 
-    const { error } = await supabase
-      .from("brands")
-      .delete()
-      .eq("id", brand.id);
+    let query = supabase.from("brands").delete();
+    if (brand.db_id) {
+      query = query.eq("id", brand.db_id);
+    } else {
+      const categoryUuid = await resolveCategoryUuid(brand.category_id);
+      query = query.eq("slug", brand.slug).eq("category_id", categoryUuid || "");
+    }
+    const { error } = await query;
 
     if (error) throw error;
 

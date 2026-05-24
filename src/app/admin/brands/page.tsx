@@ -61,8 +61,9 @@ export default function AdminBrandsPage() {
       await deleteBrand(id);
       await refresh();
       setDeleteConfirm(null);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to delete brand:", err);
+      alert(err?.message || "Failed to delete brand");
     }
   };
 

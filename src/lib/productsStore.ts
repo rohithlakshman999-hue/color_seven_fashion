@@ -519,9 +519,11 @@ export async function deleteProduct(id: string): Promise<void> {
   if (supabase) {
     try {
       if (isUuid(id)) {
+        await supabase.from("product_images").delete().eq("product_id", id);
+        await supabase.from("product_variants").delete().eq("product_id", id);
         const { error } = await supabase.from("products").delete().eq("id", id);
         if (error)
-    throw new Error(error?.message || JSON.stringify(error) || "Unknown error");
+          throw new Error(error?.message || JSON.stringify(error) || "Unknown error");
       }
       
       // Force cache refresh after delete

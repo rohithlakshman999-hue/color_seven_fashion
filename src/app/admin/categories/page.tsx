@@ -30,8 +30,9 @@ export default function AdminCategoriesPage() {
       await deleteCategory(id);
       await refresh();
       setDeleteConfirm(null);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to delete category:", err);
+      alert(err?.message || "Failed to delete category");
     }
   };
 

@@ -24,6 +24,7 @@ export interface Brand {
   display_order: number;
   is_active: boolean;
   featured: boolean;
+  db_id?: string;
   created_at: string;
   updated_at: string;
 }
