@@ -11,7 +11,7 @@ export default function AdminSettingsPage() {
   const [message, setMessage] = useState({ text: "", type: "" as "success" | "error" | "" });
 
   const [siteName, setSiteName] = useState("Colour Seven Fashion");
-  const [announcementText, setAnnouncementText] = useState("FREE SHIPPING ON ORDERS ABOVE ₹999");
+  const [announcementText, setAnnouncementText] = useState("NEW ARRIVALS DROPPING EVERY WEEK 🛍️ / TRENDING WATCHES & FASHION ACCESSORIES ⌚");
   const [announcementEnabled, setAnnouncementEnabled] = useState(true);
   const [seoTitle, setSeoTitle] = useState("COLOUR SEVEN FASHION");
   const [seoDescription, setSeoDescription] = useState("Premium modern streetwear, watches, shoes & accessories — Colour Seven Fashion.");

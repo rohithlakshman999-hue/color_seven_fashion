@@ -268,11 +268,11 @@ export default function SupabaseProductDetail({
             <div className="grid grid-cols-3 gap-4 border-t border-white/10 pt-8 text-center text-[10px] font-bold tracking-wider text-zinc-400 md:text-xs">
               <div className="rounded-xl border border-white/5 bg-[#070707] p-3">
                 <Truck className="mx-auto mb-2 h-4 w-4 text-[#c9a227]" />
-                FREE DELIVERY
+                FAST DELIVERY
               </div>
               <div className="rounded-xl border border-white/5 bg-[#070707] p-3">
                 <RefreshCw className="mx-auto mb-2 h-4 w-4 text-[#c9a227]" />
-                7 DAYS RETURN
+                ALL OVER INDIA DELIVERY
               </div>
               <div className="rounded-xl border border-white/5 bg-[#070707] p-3">
                 <ShieldCheck className="mx-auto mb-2 h-4 w-4 text-[#c9a227]" />

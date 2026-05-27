@@ -94,9 +94,15 @@ export default function CategoryShopPage({ params }: { params: Promise<{ categor
   }, [products, category]);
 
   const categoryBrands = useMemo(() => {
-    return brands
+    const uniqueBrands = new Map();
+    brands
       .filter((b) => b.category_id === categorySlug && b.is_active !== false)
-      .map((b) => ({ name: b.name, description: b.description }));
+      .forEach((b) => {
+        if (!uniqueBrands.has(b.name)) {
+          uniqueBrands.set(b.name, { name: b.name, description: b.description });
+        }
+      });
+    return Array.from(uniqueBrands.values());
   }, [brands, categorySlug]);
 
   const brandProductCounts = useMemo(() => {

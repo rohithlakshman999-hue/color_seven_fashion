@@ -45,19 +45,15 @@ export default function Navbar() {
       <div className="bg-black text-[var(--accent-1)] text-[10px] md:text-xs font-black tracking-widest py-2.5 uppercase border-b border-white/5 relative z-[60] overflow-hidden w-full select-none">
         <div className="flex w-full relative">
           <div className="animate-marquee-scroll whitespace-nowrap flex items-center shrink-0">
-            <span className="mx-6 flex items-center gap-1.5"><Sparkles className="w-3 h-3" /> FREE SHIPPING ON ORDERS ABOVE ₹999</span>
+            <span className="mx-6 flex items-center gap-1.5"><Sparkles className="w-3 h-3" /> NEW ARRIVALS DROPPING EVERY WEEK 🛍️</span>
             <span className="text-zinc-700">/</span>
-            <span className="mx-6 text-white">10% INSTANT DISCOUNT ON FIRST ORDER</span>
-            <span className="text-zinc-700">/</span>
-            <span className="mx-6 flex items-center gap-1.5"><Sparkles className="w-3 h-3" /> COLOUR SEVEN PREMIUM STREETWEAR EDITION</span>
+            <span className="mx-6 text-white">TRENDING WATCHES & FASHION ACCESSORIES ⌚</span>
             <span className="text-zinc-700">/</span>
           </div>
           <div className="animate-marquee-scroll2 whitespace-nowrap flex items-center shrink-0 absolute top-0 left-0">
-            <span className="mx-6 flex items-center gap-1.5"><Sparkles className="w-3 h-3" /> FREE SHIPPING ON ORDERS ABOVE ₹999</span>
+            <span className="mx-6 flex items-center gap-1.5"><Sparkles className="w-3 h-3" /> NEW ARRIVALS DROPPING EVERY WEEK 🛍️</span>
             <span className="text-zinc-700">/</span>
-            <span className="mx-6 text-white">10% INSTANT DISCOUNT ON FIRST ORDER</span>
-            <span className="text-zinc-700">/</span>
-            <span className="mx-6 flex items-center gap-1.5"><Sparkles className="w-3 h-3" /> COLOUR SEVEN PREMIUM STREETWEAR EDITION</span>
+            <span className="mx-6 text-white">TRENDING WATCHES & FASHION ACCESSORIES ⌚</span>
             <span className="text-zinc-700">/</span>
           </div>
         </div>
