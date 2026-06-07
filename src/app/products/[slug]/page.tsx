@@ -99,11 +99,35 @@ export default function SupabaseProductDetail({
   const images = product.product_images || [];
   const active = images[activeImage] || images[0];
 
+  const generateInquiryMessage = () => {
+    const priceStr = `Rs. ${Number(product.discount_price).toLocaleString("en-IN")}`;
+    let imageUrl = active?.image_url || "";
+    if (imageUrl && !imageUrl.startsWith("http") && typeof window !== "undefined") {
+      imageUrl = `${window.location.origin}${imageUrl.startsWith("/") ? "" : "/"}${imageUrl}`;
+    }
+
+    let message = "Hello, I'd like to place an order from my cart:\n\n";
+    message += `1. *${product.name}*\n`;
+    if (selectedSize && selectedSize !== "One Size") message += `   Size: ${selectedSize}\n`;
+    if (selectedColor && selectedColor !== "Default") message += `   Color: ${selectedColor}\n`;
+    message += `   Quantity: 1\n`;
+    message += `   Price: ${priceStr}\n`;
+    if (imageUrl) message += `   Image: ${imageUrl}\n`;
+    message += `\n`;
+    message += `*Order Subtotal: ${priceStr}*\n\n`;
+    message += "Please provide payment and shipping details.";
+
+    return encodeURIComponent(message);
+  };
+
   return (
     <div className="min-h-screen bg-black pb-24 pt-20 text-white">
       <div className="container mx-auto px-4 md:px-8">
         <div className="mb-8 flex items-center text-xs uppercase tracking-widest text-zinc-500">
-          <Link href="/shop" className="flex items-center gap-2 font-bold hover:text-[#c9a227]">
+          <Link 
+            href={product.categories?.slug ? `/shop/${product.categories.slug}` : "/shop"} 
+            className="flex items-center gap-2 font-bold hover:text-[#c9a227]"
+          >
             <ArrowLeft className="h-4 w-4" />
             Back to shop
           </Link>
@@ -251,7 +275,7 @@ export default function SupabaseProductDetail({
               </button>
               
               <a 
-                href={`https://wa.me/918122228386?text=${encodeURIComponent(`Hi, I'm interested in the ${product.name} - Rs. ${product.discount_price}.${selectedSize && selectedSize !== "One Size" ? ` Size: ${selectedSize}.` : ""}${selectedColor && selectedColor !== "Default" ? ` Color: ${selectedColor}.` : ""} Please share more details.`)}`}
+                href={`https://wa.me/918122228386?text=${generateInquiryMessage()}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex min-h-[3.5rem] flex-1 shrink-0 items-center justify-center gap-2 rounded-xl bg-[#25D366] text-sm font-black uppercase tracking-widest text-black hover:brightness-110 transition-all"
