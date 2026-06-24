@@ -27,6 +27,9 @@ This document details the completed implementation of the latest updates for **C
 - Lowered the side-by-side hero columns breakpoint from `lg` (1024px) to `md` (768px) to keep the Dhoni, Hero copy, and Ronaldo panels side-by-side on smaller window dimensions (minimizing page behavior) instead of stacking them too early.
 - Optimized font sizes (using responsive classes like `text-3xl lg:text-6xl`) and container bounds for center elements (revolving circles) to ensure they scale and look great when resized.
 
+### 6. Production Image Loading Fix (Vercel Edge Quota Bypass)
+- Configured `unoptimized: true` inside [next.config.ts](file:///C:/Users/G%20Rohith%20Lakshman/Documents/rohith/website_selling/COLOUR%20SEVEN%20SHOP/colour%20seven/next.config.ts). This makes Next.js render direct `<img>` tags pointing straight to your Supabase public bucket URLs, completely bypassing Vercel's `/_next/image` edge server and resolving the `402 (Payment Required)` loading failure globally.
+
 ---
 
 ## Verification Results

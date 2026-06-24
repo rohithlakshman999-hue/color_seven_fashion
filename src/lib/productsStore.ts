@@ -3,6 +3,13 @@ import type { Product } from "@/context/ProductContext";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import { slugToProductCategory } from "@/lib/catalogHelpers";
 import { loadCatalog } from "@/lib/catalogStore";
+import {
+  adminAddProduct,
+  adminUpdateProduct,
+  adminDeleteProduct,
+  adminUpsertProductImages,
+  adminUpsertProductVariants,
+} from "@/app/actions/adminActions";
 
 let memoryCache: Product[] | null = null;
 
@@ -289,87 +296,79 @@ export async function addProduct(product: Omit<Product, "id">): Promise<Product>
     id: `${Date.now()}${Math.random().toString(36).slice(2, 9)}`,
   };
 
-  if (supabase) {
-    try {
-      const { category_id, brand_id } = await resolveCategoryAndBrandIds(product.category, product.brand);
-      
-      if (!isUuid(category_id)) throw new Error("Invalid category UUID");
-      if (!isUuid(brand_id)) throw new Error("Invalid brand UUID");
+  try {
+    const { category_id, brand_id } = await resolveCategoryAndBrandIds(product.category, product.brand);
+    
+    if (!isUuid(category_id)) throw new Error("Invalid category UUID");
+    if (!isUuid(brand_id)) throw new Error("Invalid brand UUID");
 
-      const slug = product.name.toLowerCase().replace(/\s+/g, "-");
-      
-      const { data, error } = await supabase
-        .from("products")
-        .insert({
-          category_id,
-          brand_id,
-          name: product.name,
-          slug: `${slug}-${Date.now()}`,
-          short_description: product.description.slice(0, 200),
-          full_description: product.description,
-          sku: `SKU-${Date.now()}`,
-          original_price: validatedPrice,
-          discount_price: validatedPrice,
-          featured: product.isNew,
-          tags: product.isTrending ? ["trending"] : [],
-          is_active: true,
-        })
-        .select("id")
-        .single();
+    const slug = product.name.toLowerCase().replace(/\s+/g, "-");
+    
+    const productPayload = {
+      category_id,
+      brand_id,
+      name: product.name,
+      slug: `${slug}-${Date.now()}`,
+      short_description: product.description.slice(0, 200),
+      full_description: product.description,
+      sku: `SKU-${Date.now()}`,
+      original_price: validatedPrice,
+      discount_price: validatedPrice,
+      featured: product.isNew,
+      tags: product.isTrending ? ["trending"] : [],
+      is_active: true,
+    };
 
-      if (error || !data?.id) {
-        throw error || new Error("Failed to create product in Supabase");
-      }
-
-      newProduct.id = String(data.id);
-      
-      if (product.images && product.images.length > 0) {
-        const imageInserts = product.images.map((imgUrl, index) => ({
-          product_id: data.id,
-          image_url: imgUrl,
-          display_order: index,
-          is_main: index === 0,
-        }));
-        await supabase.from("product_images").insert(imageInserts);
-      }
-
-      const variantInserts: any[] = [];
-      let variantIndex = 0;
-      const sizesToInsert = product.sizes && product.sizes.length > 0 ? product.sizes : ["One Size"];
-      const colorsToInsert = product.colors && product.colors.length > 0 ? product.colors : ["Default"];
-
-      for (const s of sizesToInsert) {
-        for (const c of colorsToInsert) {
-          variantInserts.push({
-            product_id: data.id,
-            size: s,
-            color: c,
-            sku: `SKU-${data.id}-${variantIndex++}-${Math.random().toString(36).slice(2, 5)}`,
-            stock_quantity: product.stock ?? 10,
-            stock_status: (product.stock ?? 10) > 0 ? "in_stock" : "out_of_stock",
-          });
-        }
-      }
-
-      if (variantInserts.length > 0) {
-        await supabase.from("product_variants").insert(variantInserts);
-      }
-
-      // Force cache refresh after add
-      invalidateProductsCache();
-      const remote = await fetchRemoteProducts();
-      if (remote) {
-        memoryCache = remote;
-        const updatedProduct = remote.find((p) => p.id === newProduct.id);
-        if (updatedProduct) return updatedProduct;
-      }
-      return newProduct;
-    } catch (error: any) {
-      
-      throw new Error(error?.message || JSON.stringify(error) || "Unknown error");
+    const res = await adminAddProduct(productPayload);
+    if (!res.success || !res.id) {
+      throw new Error("Failed to create product in Supabase via Server Action");
     }
-  } else {
-    throw new Error("Supabase is required for admin edits");
+
+    newProduct.id = res.id;
+    
+    if (product.images && product.images.length > 0) {
+      const imageInserts = product.images.map((imgUrl, index) => ({
+        product_id: res.id,
+        image_url: imgUrl,
+        display_order: index,
+        is_main: index === 0,
+      }));
+      await adminUpsertProductImages(imageInserts, res.id);
+    }
+
+    const variantInserts: any[] = [];
+    let variantIndex = 0;
+    const sizesToInsert = product.sizes && product.sizes.length > 0 ? product.sizes : ["One Size"];
+    const colorsToInsert = product.colors && product.colors.length > 0 ? product.colors : ["Default"];
+
+    for (const s of sizesToInsert) {
+      for (const c of colorsToInsert) {
+        variantInserts.push({
+          product_id: res.id,
+          size: s,
+          color: c,
+          sku: `SKU-${res.id}-${variantIndex++}-${Math.random().toString(36).slice(2, 5)}`,
+          stock_quantity: 10,
+          stock_status: "in_stock",
+        });
+      }
+    }
+
+    if (variantInserts.length > 0) {
+      await adminUpsertProductVariants(variantInserts, res.id);
+    }
+
+    // Force cache refresh after add
+    invalidateProductsCache();
+    const remote = await fetchRemoteProducts();
+    if (remote) {
+      memoryCache = remote;
+      const updatedProduct = remote.find((p) => p.id === newProduct.id);
+      if (updatedProduct) return updatedProduct;
+    }
+    return newProduct;
+  } catch (error: any) {
+    throw new Error(error?.message || JSON.stringify(error) || "Unknown error");
   }
 }
 
@@ -384,169 +383,132 @@ export async function updateProduct(
     throw new Error("Product ID is required for update");
   }
 
-  if (supabase) {
-    try {
-      const existingProduct = (memoryCache || []).find((p) => p.id === id);
-      const validRemoteProductId = await ensureRemoteProduct(existingProduct, id);
+  try {
+    const existingProduct = (memoryCache || []).find((p) => p.id === id);
+    const validRemoteProductId = await ensureRemoteProduct(existingProduct, id);
 
-      if (!isUuid(validRemoteProductId)) {
-        throw new Error("Invalid remote product UUID");
-      }
-
-      const payload: Record<string, unknown> = {};
-      
-      // 1. Verify and map core fields
-      if (product.name !== undefined) payload.name = product.name;
-      
-      if (product.price !== undefined) {
-        const price = Number(product.price);
-        if (!Number.isFinite(price) || price < 0) {
-          throw new Error("Invalid price value");
-        }
-        payload.discount_price = price;
-        payload.original_price = price;
-      }
-
-      if (product.description !== undefined) {
-        payload.full_description = product.description;
-        payload.short_description = product.description.slice(0, 200);
-      }
-
-      if (product.isNew !== undefined) payload.featured = product.isNew;
-      
-      if (product.isTrending !== undefined) {
-        payload.tags = product.isTrending ? ["trending"] : [];
-      }
-
-      // 2. Handle category and brand UUIDs
-      if (product.category !== undefined || product.brand !== undefined) {
-        const targetCategoryName = product.category || existingProduct?.category;
-        const targetBrandName = product.brand || existingProduct?.brand;
-
-        if (!targetCategoryName || !targetBrandName) {
-           throw new Error("Missing category or brand context for update");
-        }
-
-        const { category_id, brand_id } = await resolveCategoryAndBrandIds(targetCategoryName, targetBrandName);
-        
-        if (!isUuid(category_id)) throw new Error("Invalid category UUID");
-        if (!isUuid(brand_id)) throw new Error("Invalid brand UUID");
-
-        payload.category_id = category_id;
-        payload.brand_id = brand_id;
-      }
-
-      payload.updated_at = new Date().toISOString();
-
-      // 3. Update Product Table
-      if (Object.keys(payload).length > 0) {
-        const { error } = await supabase.from("products").update(payload).eq("id", validRemoteProductId);
-        if (error)
-    throw new Error(error?.message || JSON.stringify(error) || "Unknown error");
-      }
-
-      // 4. Update Images Table
-      if (product.images !== undefined) {
-        const { error: deleteImgErr } = await supabase.from("product_images").delete().eq("product_id", validRemoteProductId);
-        if (deleteImgErr) throw deleteImgErr;
-
-        if (product.images.length > 0) {
-          const imageInserts = product.images.map((imgUrl, index) => ({
-            product_id: validRemoteProductId,
-            image_url: imgUrl,
-            display_order: index,
-            is_main: index === 0,
-          }));
-          const { error: insertImgErr } = await supabase.from("product_images").insert(imageInserts);
-          if (insertImgErr) throw insertImgErr;
-        }
-      }
-
-      // 5. Update Variants Table
-      if (product.sizes !== undefined || product.colors !== undefined) {
-        const existing = (memoryCache || []).find((p) => p.id === id) || existingProduct;
-        const sizesToInsert = product.sizes !== undefined ? product.sizes : (existing?.sizes || ["One Size"]);
-        const colorsToInsert = product.colors !== undefined ? product.colors : (existing?.colors || ["Default"]);
-
-        const { error: deleteVarErr } = await supabase.from("product_variants").delete().eq("product_id", validRemoteProductId);
-        if (deleteVarErr) throw deleteVarErr;
-
-        const variantInserts: any[] = [];
-        let variantIndex = 0;
-        const finalSizes = sizesToInsert.length > 0 ? sizesToInsert : ["One Size"];
-        const finalColors = colorsToInsert.length > 0 ? colorsToInsert : ["Default"];
-
-        for (const s of finalSizes) {
-          for (const c of finalColors) {
-            variantInserts.push({
-              product_id: validRemoteProductId,
-              size: s,
-              color: c,
-              sku: `SKU-${validRemoteProductId}-${variantIndex++}-${Math.random().toString(36).slice(2, 5)}`,
-              stock_quantity: 10,
-              stock_status: "in_stock",
-            });
-          }
-        }
-        if (variantInserts.length > 0) {
-          const { error: insertVarErr } = await supabase.from("product_variants").insert(variantInserts);
-          if (insertVarErr) throw insertVarErr;
-        }
-      }
-
-      // Force cache refresh after update
-      invalidateProductsCache();
-      const remote = await fetchRemoteProducts();
-      if (remote) {
-        memoryCache = remote;
-      }
-    } catch (error: any) {
-    console.error("Supabase error:", {
-      message: error?.message,
-      details: error?.details,
-      hint: error?.hint,
-      code: error?.code,
-      fullError: JSON.stringify(error, null, 2)
-    });
-    throw new Error(error?.message || JSON.stringify(error) || "Unknown error");
+    if (!isUuid(validRemoteProductId)) {
+      throw new Error("Invalid remote product UUID");
     }
-  } else {
-    throw new Error("Supabase is required for admin edits");
+
+    const payload: Record<string, unknown> = {};
+    
+    // 1. Verify and map core fields
+    if (product.name !== undefined) payload.name = product.name;
+    
+    if (product.price !== undefined) {
+      const price = Number(product.price);
+      if (!Number.isFinite(price) || price < 0) {
+        throw new Error("Invalid price value");
+      }
+      payload.discount_price = price;
+      payload.original_price = price;
+    }
+
+    if (product.description !== undefined) {
+      payload.full_description = product.description;
+      payload.short_description = product.description.slice(0, 200);
+    }
+
+    if (product.isNew !== undefined) payload.featured = product.isNew;
+    
+    if (product.isTrending !== undefined) {
+      payload.tags = product.isTrending ? ["trending"] : [];
+    }
+
+    // 2. Handle category and brand UUIDs
+    if (product.category !== undefined || product.brand !== undefined) {
+      const targetCategoryName = product.category || existingProduct?.category;
+      const targetBrandName = product.brand || existingProduct?.brand;
+
+      if (!targetCategoryName || !targetBrandName) {
+         throw new Error("Missing category or brand context for update");
+      }
+
+      const { category_id, brand_id } = await resolveCategoryAndBrandIds(targetCategoryName, targetBrandName);
+      
+      if (!isUuid(category_id)) throw new Error("Invalid category UUID");
+      if (!isUuid(brand_id)) throw new Error("Invalid brand UUID");
+
+      payload.category_id = category_id;
+      payload.brand_id = brand_id;
+    }
+
+    payload.updated_at = new Date().toISOString();
+
+    // 3. Update Product Table via Server Action
+    if (Object.keys(payload).length > 0) {
+      await adminUpdateProduct(validRemoteProductId, payload);
+    }
+
+    // 4. Update Images Table via Server Action
+    if (product.images !== undefined) {
+      const imageInserts = product.images.map((imgUrl, index) => ({
+        product_id: validRemoteProductId,
+        image_url: imgUrl,
+        display_order: index,
+        is_main: index === 0,
+      }));
+      await adminUpsertProductImages(imageInserts, validRemoteProductId);
+    }
+
+    // 5. Update Variants Table via Server Action
+    if (product.sizes !== undefined || product.colors !== undefined) {
+      const existing = (memoryCache || []).find((p) => p.id === id) || existingProduct;
+      const sizesToInsert = product.sizes !== undefined ? product.sizes : (existing?.sizes || ["One Size"]);
+      const colorsToInsert = product.colors !== undefined ? product.colors : (existing?.colors || ["Default"]);
+
+      const variantInserts: any[] = [];
+      let variantIndex = 0;
+      const finalSizes = sizesToInsert.length > 0 ? sizesToInsert : ["One Size"];
+      const finalColors = colorsToInsert.length > 0 ? colorsToInsert : ["Default"];
+
+      for (const s of finalSizes) {
+        for (const c of finalColors) {
+          variantInserts.push({
+            product_id: validRemoteProductId,
+            size: s,
+            color: c,
+            sku: `SKU-${validRemoteProductId}-${variantIndex++}-${Math.random().toString(36).slice(2, 5)}`,
+            stock_quantity: 10,
+            stock_status: "in_stock",
+          });
+        }
+      }
+      await adminUpsertProductVariants(variantInserts, validRemoteProductId);
+    }
+
+    // Force cache refresh after update
+    invalidateProductsCache();
+    const remote = await fetchRemoteProducts();
+    if (remote) {
+      memoryCache = remote;
+    }
+  } catch (error: any) {
+    console.error("Supabase error:", error);
+    throw new Error(error?.message || String(error));
   }
 }
 
 export async function deleteProduct(id: string): Promise<void> {
-  if (supabase) {
-    try {
-      if (isUuid(id)) {
-        await supabase.from("product_images").delete().eq("product_id", id);
-        await supabase.from("product_variants").delete().eq("product_id", id);
-        const { error } = await supabase.from("products").delete().eq("id", id);
-        if (error)
-          throw new Error(error?.message || JSON.stringify(error) || "Unknown error");
-      }
-      
-      // Force cache refresh after delete
-      invalidateProductsCache();
-      const remote = await fetchRemoteProducts();
-      if (remote && remote.length > 0) {
-        memoryCache = remote;
-      } else {
-        // Handle deletion of local legacy products to avoid immediate respawning
-        const list = memoryCache || buildDefaultProducts();
-        memoryCache = list.filter((p) => p.id !== id);
-      }
-    } catch (error: any) {
-      console.error("Supabase error:", {
-        message: error?.message,
-        details: error?.details,
-        hint: error?.hint,
-        code: error?.code,
-        fullError: JSON.stringify(error, null, 2),
-      });
-      throw new Error(error?.message || JSON.stringify(error) || "Unknown error");
+  try {
+    if (isUuid(id)) {
+      // NOTE: cascade delete on Supabase handles product_images and product_variants автоматически!
+      await adminDeleteProduct(id);
     }
-  } else {
-    throw new Error("Supabase is required for admin edits");
+    
+    // Force cache refresh after delete
+    invalidateProductsCache();
+    const remote = await fetchRemoteProducts();
+    if (remote && remote.length > 0) {
+      memoryCache = remote;
+    } else {
+      // Handle deletion of local legacy products to avoid immediate respawning
+      const list = memoryCache || buildDefaultProducts();
+      memoryCache = list.filter((p) => p.id !== id);
+    }
+  } catch (error: any) {
+    console.error("Supabase error:", error);
+    throw new Error(error?.message || String(error));
   }
 }

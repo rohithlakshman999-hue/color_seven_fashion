@@ -1,6 +1,14 @@
 import { allBrands, categories as defaultCategories } from "@/data/brands";
 import { Brand, Category } from "@/types/database";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
+import {
+  adminAddCategory,
+  adminUpdateCategory,
+  adminDeleteCategory,
+  adminAddBrand,
+  adminUpdateBrand,
+  adminDeleteBrand,
+} from "@/app/actions/adminActions";
 
 export type CatalogData = { categories: Category[]; brands: Brand[] };
 
@@ -336,42 +344,31 @@ async function resolveCategoryUuid(slugOrId: string): Promise<string | null> {
 export async function addCategory(
   data: Omit<Category, "id" | "created_at" | "updated_at">
 ): Promise<Category> {
-  if (!supabase) {
-    throw new Error("Supabase is not configured. Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY environment variables.");
-  }
-
-  const now = new Date().toISOString();
   const category: Category = {
     ...data,
     id: data.slug,
-    created_at: now,
-    updated_at: now,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
   };
 
   try {
-    const { error, data: insertedData } = await supabase.from("categories").insert({
+    await adminAddCategory({
       name: category.name,
       slug: category.slug,
       description: category.description,
-      image: category.image,
+      image: category.image || null,
       icon: category.icon || null,
       display_order: category.display_order,
       is_active: category.is_active,
-    }).select();
-
-    if (error) {
-      
-      throw new Error(`Failed to add category: ${error.message || error.details || 'Unknown error'}`);
-    }
+    });
 
     // Refresh cache after successful insert
     invalidateCatalogCache();
     const refreshed = await loadCatalog(true);
     return refreshed.categories.find((c) => c.slug === category.slug) || category;
-  } catch (err) {
-    const errorMessage = err instanceof Error ? err.message : String(err);
-    
-    throw new Error(`Failed to add category: ${errorMessage}`);
+  } catch (err: any) {
+    console.error("Supabase error:", err);
+    throw new Error(err?.message || String(err));
   }
 }
 
@@ -379,14 +376,8 @@ export async function updateCategory(
   id: string,
   updates: Partial<Category>
 ): Promise<void> {
-  if (!supabase) {
-    throw new Error("Supabase is not configured");
-  }
-
-  const now = new Date().toISOString();
-
   try {
-    const payload: Record<string, unknown> = { updated_at: now };
+    const payload: Record<string, unknown> = { updated_at: new Date().toISOString() };
     if (updates.name !== undefined) payload.name = updates.name;
     if (updates.slug !== undefined) payload.slug = updates.slug;
     if (updates.description !== undefined) payload.description = updates.description;
@@ -395,48 +386,28 @@ export async function updateCategory(
     if (updates.display_order !== undefined) payload.display_order = updates.display_order;
     if (updates.is_active !== undefined) payload.is_active = updates.is_active;
 
-    const { error } = await supabase.from("categories").update(payload).eq("slug", id);
-    if (error)
-    throw new Error(error?.message || JSON.stringify(error) || "Unknown error");
+    await adminUpdateCategory(id, payload);
 
     // Refresh cache after successful update
     invalidateCatalogCache();
     await loadCatalog(true);
   } catch (err: any) {
-    console.error("Supabase error:", {
-      message: err?.message,
-      details: err?.details,
-      hint: err?.hint,
-      code: err?.code,
-      fullError: JSON.stringify(err, null, 2)
-    });
-    
-    throw new Error(err?.message || JSON.stringify(err) || "Unknown error");
+    console.error("Supabase error:", err);
+    throw new Error(err?.message || String(err));
   }
 }
 
 export async function deleteCategory(id: string): Promise<void> {
-  if (!supabase) {
-    throw new Error("Supabase is not configured");
-  }
-
   try {
-    const { error } = await supabase.from("categories").delete().eq("id", id);
-    if (error) throw error;
+    // Note: id here represents the category slug or database id. In Server Actions we look it up by slug/id.
+    await adminDeleteCategory(id);
 
     // Refresh cache after successful delete
     invalidateCatalogCache();
     await loadCatalog(true);
   } catch (err: any) {
-    console.error("Supabase error:", {
-      message: err?.message,
-      details: err?.details,
-      hint: err?.hint,
-      code: err?.code,
-      fullError: JSON.stringify(err, null, 2)
-    });
-    
-    throw new Error(err?.message || JSON.stringify(err) || "Unknown error");
+    console.error("Supabase error:", err);
+    throw new Error(err?.message || String(err));
   }
 }
 
@@ -446,11 +417,6 @@ export async function addBrand(
     category_id: string;
   }
 ): Promise<Brand> {
-  if (!supabase) {
-    throw new Error("Supabase is not configured");
-  }
-
-  const now = new Date().toISOString();
   const brand: Brand = {
     id: buildBrandId(data.category_id, data.name),
     category_id: data.category_id,
@@ -463,8 +429,8 @@ export async function addBrand(
     display_order: data.display_order ?? 0,
     is_active: data.is_active ?? true,
     featured: data.featured ?? false,
-    created_at: now,
-    updated_at: now,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
   };
 
   try {
@@ -473,7 +439,7 @@ export async function addBrand(
       throw new Error(`Category "${data.category_id}" not found in database`);
     }
 
-    const { error } = await supabase.from("brands").insert({
+    await adminAddBrand({
       category_id: categoryUuid,
       name: brand.name,
       slug: brand.slug,
@@ -486,15 +452,13 @@ export async function addBrand(
       featured: brand.featured,
     });
 
-    if (error) throw error;
-
     // Refresh cache after successful insert
     invalidateCatalogCache();
     const refreshed = await loadCatalog(true);
     return refreshed.brands.find((b) => b.id === brand.id) || brand;
   } catch (err: any) {
     console.error("Supabase error:", err);
-    throw new Error(err?.message || "Unknown error");
+    throw new Error(err?.message || String(err));
   }
 }
 
@@ -502,12 +466,6 @@ export async function updateBrand(
   id: string,
   updates: Partial<Brand>
 ): Promise<void> {
-  if (!supabase) {
-    throw new Error("Supabase is not configured");
-  }
-
-  const now = new Date().toISOString();
-
   try {
     const catalog = getCatalogSync();
     const brand = catalog.brands.find((b) => b.id === id);
@@ -515,7 +473,7 @@ export async function updateBrand(
       throw new Error("Brand not found locally");
     }
 
-    const payload: Record<string, unknown> = { updated_at: now };
+    const payload: Record<string, unknown> = { updated_at: new Date().toISOString() };
     if (updates.name !== undefined) payload.name = updates.name;
     if (updates.slug !== undefined) payload.slug = updates.slug;
     if (updates.description !== undefined) payload.description = updates.description;
@@ -526,47 +484,28 @@ export async function updateBrand(
     if (updates.is_active !== undefined) payload.is_active = updates.is_active;
     if (updates.featured !== undefined) payload.featured = updates.featured;
 
-    if (updates.category_id !== undefined) {
-      const uuid = await resolveCategoryUuid(updates.category_id);
-      if (uuid) payload.category_id = uuid;
-    }
-
     const categoryUuid = await resolveCategoryUuid(brand.category_id);
     if (!categoryUuid) {
       throw new Error(`Category "${brand.category_id}" not found in database`);
     }
 
-    let query = supabase.from("brands").update(payload);
-    if (brand.db_id) {
-      query = query.eq("id", brand.db_id);
-    } else {
-      query = query.eq("slug", brand.slug).eq("category_id", categoryUuid);
+    if (updates.category_id !== undefined) {
+      const newUuid = await resolveCategoryUuid(updates.category_id);
+      if (newUuid) payload.category_id = newUuid;
     }
-    const { error } = await query;
 
-    if (error) throw error;
+    await adminUpdateBrand(brand.slug, categoryUuid, payload);
 
     // Refresh cache after successful update
     invalidateCatalogCache();
     await loadCatalog(true);
   } catch (err: any) {
-    console.error("Supabase error:", {
-      message: err?.message,
-      details: err?.details,
-      hint: err?.hint,
-      code: err?.code,
-      fullError: JSON.stringify(err, null, 2)
-    });
-    
-    throw new Error(err?.message || JSON.stringify(err) || "Unknown error");
+    console.error("Supabase error:", err);
+    throw new Error(err?.message || String(err));
   }
 }
 
 export async function deleteBrand(id: string): Promise<void> {
-  if (!supabase) {
-    throw new Error("Supabase is not configured");
-  }
-
   try {
     const catalog = getCatalogSync();
     const brand = catalog.brands.find((b) => b.id === id);
@@ -574,30 +513,19 @@ export async function deleteBrand(id: string): Promise<void> {
       throw new Error("Brand not found locally");
     }
 
-    let query = supabase.from("brands").delete();
-    if (brand.db_id) {
-      query = query.eq("id", brand.db_id);
-    } else {
-      const categoryUuid = await resolveCategoryUuid(brand.category_id);
-      query = query.eq("slug", brand.slug).eq("category_id", categoryUuid || "");
+    const categoryUuid = await resolveCategoryUuid(brand.category_id);
+    if (!categoryUuid) {
+      throw new Error(`Category "${brand.category_id}" not found in database`);
     }
-    const { error } = await query;
 
-    if (error) throw error;
+    await adminDeleteBrand(brand.slug, categoryUuid);
 
     // Refresh cache after successful delete
     invalidateCatalogCache();
     await loadCatalog(true);
   } catch (err: any) {
-    console.error("Supabase error:", {
-      message: err?.message,
-      details: err?.details,
-      hint: err?.hint,
-      code: err?.code,
-      fullError: JSON.stringify(err, null, 2)
-    });
-    
-    throw new Error(err?.message || JSON.stringify(err) || "Unknown error");
+    console.error("Supabase error:", err);
+    throw new Error(err?.message || String(err));
   }
 }
 
