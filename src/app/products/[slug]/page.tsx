@@ -19,6 +19,7 @@ import {
 import Link from "next/link";
 import { useCart } from "@/context/CartContext";
 import { useContactInfo } from "@/context/ContactInfoContext";
+import { products as defaultProducts } from "@/data/products";
 
 type ProductDetail = Product & {
   brands?: Brand | null;
@@ -48,7 +49,55 @@ export default function SupabaseProductDetail({
 
   useEffect(() => {
     const fetchProduct = async () => {
+      const findLocalFallback = () => {
+        const fallback = defaultProducts.find(
+          (p) =>
+            p.id === slug ||
+            (p as unknown as { slug?: string }).slug === slug ||
+            p.name.toLowerCase().replace(/[^a-z0-9]+/g, "-") === slug
+        );
+        if (fallback) {
+          setProduct({
+            id: fallback.id,
+            name: fallback.name,
+            slug: (fallback as unknown as { slug?: string }).slug || slug,
+            discount_price: fallback.price,
+            original_price: fallback.price,
+            short_description: fallback.description,
+            full_description: fallback.description,
+            featured: fallback.isNew,
+            is_active: true,
+            brands: { name: fallback.brand } as Brand,
+            categories: { name: fallback.category, slug: fallback.category.toLowerCase() } as Category,
+            product_images: (fallback.images || []).map((img, i) => ({
+              id: `${i}`,
+              product_id: fallback.id,
+              image_url: img,
+              is_primary: i === 0,
+              display_order: i,
+              created_at: "",
+            })),
+            product_variants: (fallback.sizes || []).map((s, i) => ({
+              id: `${i}`,
+              product_id: fallback.id,
+              size: s,
+              color: fallback.colors?.[0] || "Default",
+              stock_quantity: 10,
+              sku: "",
+              created_at: "",
+            })),
+          } as unknown as ProductDetail);
+          setError("");
+          return true;
+        }
+        return false;
+      };
+
       if (!supabase) {
+        if (findLocalFallback()) {
+          setLoading(false);
+          return;
+        }
         setError("Product details require Supabase configuration");
         setLoading(false);
         return;
@@ -62,14 +111,14 @@ export default function SupabaseProductDetail({
           .eq("is_active", true)
           .single();
 
-        if (productError) throw productError;
+        if (productError) {
+          if (findLocalFallback()) {
+            return;
+          }
+          throw productError;
+        }
 
         const variants = data.product_variants || [];
-        const sizes = Array.from(new Set(variants.map((v: ProductVariant) => v.size).filter(Boolean))) as string[];
-        const colors = Array.from(new Set(variants.map((v: ProductVariant) => v.color).filter(Boolean))) as string[];
-
-        // Do not pre-select size and color by default.
-
         setProduct({
           ...data,
           product_images: [...(data.product_images || [])].sort(
@@ -77,7 +126,9 @@ export default function SupabaseProductDetail({
           ),
         });
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Product not found");
+        if (!findLocalFallback()) {
+          setError(err instanceof Error ? err.message : "Product not found");
+        }
       } finally {
         setLoading(false);
       }
