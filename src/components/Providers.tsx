@@ -5,6 +5,7 @@ import { ProductProvider } from "@/context/ProductContext";
 import { SiteSettingsProvider } from "@/context/SiteSettingsContext";
 import { ContactInfoProvider } from "@/context/ContactInfoContext";
 import { HomepageContentProvider } from "@/context/HomepageContentContext";
+import { CartProvider } from "@/context/CartContext";
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   return (
@@ -12,7 +13,9 @@ export default function Providers({ children }: { children: React.ReactNode }) {
       <ProductProvider>
         <SiteSettingsProvider>
           <ContactInfoProvider>
-            <HomepageContentProvider>{children}</HomepageContentProvider>
+            <HomepageContentProvider>
+              <CartProvider>{children}</CartProvider>
+            </HomepageContentProvider>
           </ContactInfoProvider>
         </SiteSettingsProvider>
       </ProductProvider>

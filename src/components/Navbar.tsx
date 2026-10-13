@@ -7,6 +7,7 @@ import { Menu, X, ShoppingBag, Search, User, Heart, ChevronDown, Sparkles } from
 import { motion, AnimatePresence } from "framer-motion";
 import Logo from "./Logo";
 import { useCatalog } from "@/context/CatalogContext";
+import { useCart } from "@/context/CartContext";
 
 const navLinks = [
   { name: "Home", href: "/" },
@@ -24,6 +25,7 @@ export default function Navbar() {
   const [mobileShopOpen, setMobileShopOpen] = useState(false);
   const pathname = usePathname();
   const { categories } = useCatalog();
+  const { totalCount, openCart } = useCart();
 
   const shopSubLinks = categories
     .filter((c) => c.is_active)
@@ -196,11 +198,14 @@ export default function Navbar() {
             {/* Cart Icon */}
             <motion.button 
               whileHover={{ scale: 1.1, color: "var(--accent-1)" }} 
-              className="text-zinc-400 hover:text-white transition-colors relative group"
+              whileTap={{ scale: 0.95 }}
+              onClick={openCart}
+              aria-label={`Shopping bag with ${totalCount} items`}
+              className="text-zinc-400 hover:text-white transition-colors relative group p-1"
             >
               <ShoppingBag className="w-5 h-5" />
-              <span className="absolute -top-1.5 -right-2 bg-[var(--accent-1)] text-black text-[9px] font-black px-1.5 py-0.5 rounded-full shadow-lg group-hover:scale-110 transition-transform">
-                0
+              <span className={`absolute -top-1.5 -right-2 bg-[var(--accent-1)] text-black text-[9px] font-black px-1.5 py-0.5 rounded-full shadow-lg transition-transform ${totalCount > 0 ? "scale-100 shadow-[0_0_10px_rgba(207,242,39,0.5)]" : "scale-90 opacity-70"}`}>
+                {totalCount}
               </span>
             </motion.button>
           </div>
@@ -299,6 +304,21 @@ export default function Navbar() {
 
               <div className="mt-auto border-t border-white/5 pt-8 pb-6">
                 <div className="flex items-center justify-around space-x-6 text-sm text-gray-400">
+                  <motion.button 
+                    onClick={() => { setIsOpen(false); openCart(); }}
+                    whileHover={{ scale: 1.1, color: "var(--accent-1)" }} 
+                    className="hover:text-white transition-colors flex flex-col items-center space-y-2 relative"
+                  >
+                    <div className="relative">
+                      <ShoppingBag className="w-6 h-6" />
+                      {totalCount > 0 && (
+                        <span className="absolute -top-1.5 -right-2 bg-[var(--accent-1)] text-black text-[9px] font-black px-1.5 py-0.2 rounded-full">
+                          {totalCount}
+                        </span>
+                      )}
+                    </div>
+                    <span className="uppercase tracking-widest text-[10px]">Bag ({totalCount})</span>
+                  </motion.button>
                   <motion.button whileHover={{ scale: 1.1, color: "var(--accent-1)" }} className="hover:text-white transition-colors flex flex-col items-center space-y-2">
                     <User className="w-6 h-6" /> <span className="uppercase tracking-widest text-[10px]">Account</span>
                   </motion.button>

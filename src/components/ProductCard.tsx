@@ -2,8 +2,9 @@
 
 import { useState, memo } from "react";
 import Link from "next/link";
-import { Heart, ShoppingBag } from "lucide-react";
+import { Heart, ShoppingBag, Check } from "lucide-react";
 import Image from "next/image";
+import { useCart } from "@/context/CartContext";
 
 interface ProductCardProps {
   product: {
@@ -21,6 +22,23 @@ interface ProductCardProps {
 function ProductCard({ product }: ProductCardProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [isWishlisted, setIsWishlisted] = useState(false);
+  const [justAdded, setJustAdded] = useState(false);
+  const { addToCart } = useCart();
+
+  const handleQuickAdd = () => {
+    addToCart({
+      productId: product.id,
+      name: product.name,
+      brand: product.brand,
+      price: product.price,
+      image: product.images[0] || "/images/chrono_watch.png",
+      quantity: 1,
+      slug: product.slug,
+      openDrawer: true,
+    });
+    setJustAdded(true);
+    setTimeout(() => setJustAdded(false), 1500);
+  };
 
   return (
     <div
@@ -53,7 +71,11 @@ function ProductCard({ product }: ProductCardProps) {
         >
           <button
             type="button"
-            onClick={() => setIsWishlisted(!isWishlisted)}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setIsWishlisted(!isWishlisted);
+            }}
             className="p-2 bg-black/80 rounded-full text-white hover:text-red-400 transition-colors"
             aria-label="Wishlist"
           >
@@ -61,13 +83,27 @@ function ProductCard({ product }: ProductCardProps) {
               className={`w-4 h-4 ${isWishlisted ? "fill-red-400 text-red-400" : ""}`}
             />
           </button>
-          <Link
-            href={`/products/${product.slug || product.id}`}
-            className="p-2 bg-[var(--accent-1)] rounded-full text-black hover:brightness-110 transition-all"
-            aria-label="View product"
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              handleQuickAdd();
+            }}
+            className={`p-2 rounded-full transition-all ${
+              justAdded
+                ? "bg-emerald-400 text-black scale-110 shadow-[0_0_15px_rgba(52,211,153,0.6)]"
+                : "bg-[var(--accent-1)] text-black hover:brightness-110 hover:scale-105"
+            }`}
+            aria-label={`Add ${product.name} to cart`}
+            title="Add to cart"
           >
-            <ShoppingBag className="w-4 h-4" />
-          </Link>
+            {justAdded ? (
+              <Check className="w-4 h-4 stroke-[2.5]" />
+            ) : (
+              <ShoppingBag className="w-4 h-4" />
+            )}
+          </button>
         </div>
       </div>
 

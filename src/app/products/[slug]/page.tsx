@@ -11,8 +11,14 @@ import {
   ShoppingBag,
   Truck,
   MessageCircle,
+  Check,
+  Plus,
+  Minus,
+  AlertCircle,
 } from "lucide-react";
 import Link from "next/link";
+import { useCart } from "@/context/CartContext";
+import { useContactInfo } from "@/context/ContactInfoContext";
 
 type ProductDetail = Product & {
   brands?: Brand | null;
@@ -31,8 +37,14 @@ export default function SupabaseProductDetail({
   const [activeImage, setActiveImage] = useState(0);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
+  const [quantity, setQuantity] = useState(1);
+  const [validationError, setValidationError] = useState<string | null>(null);
+  const [isAdded, setIsAdded] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  const { addToCart } = useCart();
+  const { contactInfo } = useContactInfo();
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -99,6 +111,58 @@ export default function SupabaseProductDetail({
   const images = product.product_images || [];
   const active = images[activeImage] || images[0];
 
+  const availableSizes = product.product_variants
+    ? (Array.from(
+        new Set(product.product_variants.map((v) => v.size).filter(Boolean))
+      ) as string[])
+    : [];
+
+  const availableColors = product.product_variants
+    ? (Array.from(
+        new Set(product.product_variants.map((v) => v.color).filter(Boolean))
+      ) as string[])
+    : [];
+
+  const handleAddToCart = () => {
+    if (!product) return;
+
+    if (availableSizes.length > 0 && !selectedSize) {
+      setValidationError("Please select a size to continue");
+      return;
+    }
+
+    if (availableColors.length > 0 && !selectedColor) {
+      setValidationError("Please select a color to continue");
+      return;
+    }
+
+    setValidationError(null);
+
+    addToCart({
+      productId: product.id,
+      name: product.name,
+      brand: product.brands?.name || "Colour Seven",
+      price: Number(product.discount_price),
+      originalPrice: product.original_price ? Number(product.original_price) : undefined,
+      image: active?.image_url || images[0]?.image_url || "/images/chrono_watch.png",
+      size: selectedSize,
+      color: selectedColor,
+      quantity,
+      slug: product.slug,
+      openDrawer: true,
+    });
+
+    setIsAdded(true);
+    setTimeout(() => {
+      setIsAdded(false);
+    }, 2000);
+  };
+
+  const whatsappNumber = (contactInfo?.whatsapp_number || "8122228386").replace(
+    /\D/g,
+    ""
+  );
+
   const generateInquiryMessage = () => {
     const priceStr = `Rs. ${Number(product.discount_price).toLocaleString("en-IN")}`;
     let imageUrl = active?.image_url || "";
@@ -110,11 +174,11 @@ export default function SupabaseProductDetail({
     message += `1. *${product.name}*\n`;
     if (selectedSize && selectedSize !== "One Size") message += `   Size: ${selectedSize}\n`;
     if (selectedColor && selectedColor !== "Default") message += `   Color: ${selectedColor}\n`;
-    message += `   Quantity: 1\n`;
+    message += `   Quantity: ${quantity}\n`;
     message += `   Price: ${priceStr}\n`;
     if (imageUrl) message += `   Image: ${imageUrl}\n`;
     message += `\n`;
-    message += `*Order Subtotal: ${priceStr}*\n\n`;
+    message += `*Order Subtotal: Rs. ${(Number(product.discount_price) * quantity).toLocaleString("en-IN")}*\n\n`;
     message += "Please provide payment and shipping details.";
 
     return encodeURIComponent(message);
@@ -268,25 +332,86 @@ export default function SupabaseProductDetail({
               </div>
             )}
 
-            <div className="mb-12 flex flex-col gap-4 sm:flex-row">
-              <button className="flex min-h-[3.5rem] flex-1 shrink-0 items-center justify-center gap-2 rounded-xl bg-[#c9a227] text-sm font-black uppercase tracking-widest text-black hover:bg-white transition-colors">
-                <ShoppingBag className="h-5 w-5" />
-                Add to Cart
-              </button>
-              
-              <a 
-                href={`https://wa.me/918122228386?text=${generateInquiryMessage()}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex min-h-[3.5rem] flex-1 shrink-0 items-center justify-center gap-2 rounded-xl bg-[#25D366] text-sm font-black uppercase tracking-widest text-black hover:brightness-110 transition-all"
-              >
-                <MessageCircle className="h-5 w-5" />
-                WhatsApp Inquiry
-              </a>
+            {/* Validation Banner */}
+            {validationError && (
+              <div className="mb-6 flex items-center gap-2.5 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-xs font-bold text-red-400">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                <span>{validationError}</span>
+              </div>
+            )}
 
-              <button className="flex min-h-[3.5rem] w-full shrink-0 items-center justify-center rounded-xl border border-white/10 bg-[#070707] text-zinc-400 hover:border-white/30 hover:text-white sm:w-14 transition-colors">
-                <Heart className="h-5 w-5" />
-              </button>
+            {/* Quantity Selector & Action Buttons */}
+            <div className="mb-12 space-y-4">
+              {/* Quantity bar */}
+              <div className="flex items-center gap-4">
+                <span className="text-xs font-bold uppercase tracking-widest text-zinc-500">
+                  Quantity
+                </span>
+                <div className="flex items-center rounded-xl border border-white/10 bg-zinc-900">
+                  <button
+                    type="button"
+                    onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                    className="flex h-10 w-10 items-center justify-center text-zinc-400 hover:bg-white/10 hover:text-white transition-colors rounded-l-xl"
+                    aria-label="Decrease quantity"
+                  >
+                    <Minus className="h-4 w-4" />
+                  </button>
+                  <span className="w-12 text-center text-sm font-bold text-white">
+                    {quantity}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setQuantity((q) => q + 1)}
+                    className="flex h-10 w-10 items-center justify-center text-zinc-400 hover:bg-white/10 hover:text-white transition-colors rounded-r-xl"
+                    aria-label="Increase quantity"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Action Buttons Row */}
+              <div className="flex flex-col gap-4 sm:flex-row">
+                <button
+                  type="button"
+                  onClick={handleAddToCart}
+                  className={`flex min-h-[3.5rem] flex-1 shrink-0 items-center justify-center gap-2 rounded-xl text-sm font-black uppercase tracking-widest transition-all duration-300 ${
+                    isAdded
+                      ? "bg-emerald-500 text-black shadow-[0_0_25px_rgba(16,185,129,0.5)] scale-[1.01]"
+                      : "bg-[#c9a227] text-black hover:bg-white hover:scale-[1.01]"
+                  }`}
+                >
+                  {isAdded ? (
+                    <>
+                      <Check className="h-5 w-5 stroke-[2.5]" />
+                      <span>Added to Bag!</span>
+                    </>
+                  ) : (
+                    <>
+                      <ShoppingBag className="h-5 w-5" />
+                      <span>Add to Cart</span>
+                    </>
+                  )}
+                </button>
+                
+                <a 
+                  href={`https://wa.me/${whatsappNumber}?text=${generateInquiryMessage()}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex min-h-[3.5rem] flex-1 shrink-0 items-center justify-center gap-2 rounded-xl bg-[#25D366] text-sm font-black uppercase tracking-widest text-black hover:brightness-110 transition-all shadow-[0_0_20px_rgba(37,211,102,0.2)]"
+                >
+                  <MessageCircle className="h-5 w-5" />
+                  WhatsApp Inquiry
+                </a>
+
+                <button 
+                  type="button"
+                  aria-label="Wishlist"
+                  className="flex min-h-[3.5rem] w-full shrink-0 items-center justify-center rounded-xl border border-white/10 bg-[#070707] text-zinc-400 hover:border-white/30 hover:text-red-400 sm:w-14 transition-colors"
+                >
+                  <Heart className="h-5 w-5" />
+                </button>
+              </div>
             </div>
 
             <div className="grid grid-cols-3 gap-4 border-t border-white/10 pt-8 text-center text-[10px] font-bold tracking-wider text-zinc-400 md:text-xs">

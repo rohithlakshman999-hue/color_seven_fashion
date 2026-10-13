@@ -27,7 +27,7 @@ const SLUG_TO_CATEGORY: Record<string, ProductCategory> = {
 const CATEGORY_TO_SLUG: Record<ProductCategory, string> = {
   Watches: "watches",
   Shoes: "shoes",
-  Clothes: "clothing",
+  Clothing: "clothing",
   Accessories: "accessories",
 };
 

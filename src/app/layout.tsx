@@ -3,6 +3,7 @@ import "./globals.css";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import Providers from "@/components/Providers";
+import CartDrawer from "@/components/CartDrawer";
 
 export const metadata: Metadata = {
   title: "COLOUR SEVEN FASHION",
@@ -27,6 +28,7 @@ export default function RootLayout({
           <Navbar />
           <main className="flex-grow">{children}</main>
           <Footer />
+          <CartDrawer />
         </Providers>
       </body>
     </html>
