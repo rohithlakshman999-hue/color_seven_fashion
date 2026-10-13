@@ -4,6 +4,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import Providers from "@/components/Providers";
 import CartDrawer from "@/components/CartDrawer";
+import AnalyticsTracker from "@/components/AnalyticsTracker";
 
 export const metadata: Metadata = {
   title: "COLOUR SEVEN FASHION",
@@ -25,6 +26,7 @@ export default function RootLayout({
     <html lang="en" className="h-full antialiased bg-black text-white">
       <body className="min-h-full flex flex-col font-sans">
         <Providers>
+          <AnalyticsTracker />
           <Navbar />
           <main className="flex-grow">{children}</main>
           <Footer />

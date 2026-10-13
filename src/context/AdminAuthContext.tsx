@@ -70,6 +70,11 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
     if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
       setStoredAuth();
       setIsAuthenticated(true);
+      fetch("/api/admin/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
+      }).catch(() => {});
       return true;
     }
     return false;
@@ -78,6 +83,7 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(() => {
     clearStoredAuth();
     setIsAuthenticated(false);
+    fetch("/api/admin/logout", { method: "POST" }).catch(() => {});
   }, []);
 
   return (

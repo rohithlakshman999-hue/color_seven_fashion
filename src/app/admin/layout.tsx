@@ -16,6 +16,7 @@ import {
   Lock,
   Eye,
   EyeOff,
+  BarChart3,
 } from "lucide-react";
 import { useState } from "react";
 import { ProductProvider } from "@/context/ProductContext";
@@ -23,6 +24,7 @@ import { AdminAuthProvider, useAdminAuth } from "@/context/AdminAuthContext";
 
 const navItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/admin/products", label: "All Products", icon: Package },
   { href: "/admin/products/add", label: "Add Product", icon: PlusCircle },
   { href: "/admin/brands", label: "Brands", icon: Tag },
@@ -38,9 +40,18 @@ function AdminLoginScreen() {
   const [error, setError] = useState("");
   const [shaking, setShaking] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    try {
+      await fetch("/api/admin/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: username.trim(), password }),
+      });
+    } catch {
+      // ignore
+    }
     const ok = login(username.trim(), password);
     if (!ok) {
       setError("Invalid username or password");

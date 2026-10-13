@@ -13,10 +13,15 @@ import {
   ExternalLink,
   Tag,
   Layers,
+  BarChart3,
+  ArrowRight,
 } from "lucide-react";
 import { useProducts } from "@/context/ProductContext";
 import { useCatalog } from "@/context/CatalogContext";
 import { brandOptionKey } from "@/lib/catalogHelpers";
+import AnalyticsSummaryCards from "@/components/admin/AnalyticsSummaryCards";
+import AnalyticsLineChart from "@/components/admin/AnalyticsLineChart";
+import { AnalyticsDashboardData } from "@/types/analytics";
 
 const categoryIcons: Record<string, React.ComponentType<{ className?: string }>> = {
   Watches: Watch,
@@ -42,6 +47,20 @@ const categoryIconBySlug: Record<string, React.ComponentType<{ className?: strin
 export default function AdminDashboard() {
   const { products, loaded } = useProducts();
   const { categories: catalogCategories, brands: catalogBrands } = useCatalog();
+  const [analytics, setAnalytics] = useState<AnalyticsDashboardData | null>(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/admin/analytics?range=7d")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((resData) => {
+        if (resData?.success && resData?.data) {
+          setAnalytics(resData.data);
+        }
+      })
+      .catch((err) => console.error("Admin analytics fetch error:", err))
+      .finally(() => setAnalyticsLoading(false));
+  }, []);
 
   if (!loaded) {
     return (
@@ -117,6 +136,97 @@ export default function AdminDashboard() {
               </motion.div>
             );
           }
+        )}
+      </div>
+
+      {/* Website Visitor Analytics Section */}
+      <div className="space-y-4 pt-2">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <BarChart3 className="w-5 h-5 text-[var(--accent-1)]" />
+            <h2 className="text-lg font-black text-white uppercase tracking-wide">
+              Website Visitor Analytics
+            </h2>
+            <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-bold uppercase tracking-wider border border-emerald-500/20">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              Live Traffic
+            </span>
+          </div>
+          <Link
+            href="/admin/analytics"
+            className="flex items-center gap-1 text-xs font-bold text-[var(--accent-1)] hover:underline uppercase tracking-wider"
+          >
+            <span>Full Analytics Report</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+
+        {/* 5 KPI Cards */}
+        {analytics?.summary && (
+          <AnalyticsSummaryCards
+            summary={analytics.summary}
+            isLoading={analyticsLoading}
+          />
+        )}
+
+        {/* Chart Preview & Quick Top Pages */}
+        {analytics && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div className="lg:col-span-2">
+              <AnalyticsLineChart
+                data={analytics.chartData}
+                timeRange="7d"
+                isLoading={analyticsLoading}
+              />
+            </div>
+            <div className="bg-[#070707] border border-white/10 rounded-2xl p-5 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-xs font-black uppercase tracking-wider text-white">
+                    Top Visited Pages
+                  </span>
+                  <Link
+                    href="/admin/analytics"
+                    className="text-[10px] font-bold text-[#c9a227] hover:underline uppercase"
+                  >
+                    View All →
+                  </Link>
+                </div>
+                {analytics.topPages.length === 0 ? (
+                  <p className="text-xs text-zinc-500 py-8 text-center">
+                    No visitor records yet. As users browse the site, top pages will appear here.
+                  </p>
+                ) : (
+                  <div className="space-y-2.5">
+                    {analytics.topPages.slice(0, 4).map((p) => (
+                      <div
+                        key={p.pathname}
+                        className="p-2.5 rounded-xl bg-black border border-white/5 flex items-center justify-between gap-2"
+                      >
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-white truncate">
+                            {p.pathname}
+                          </p>
+                          <p className="text-[10px] text-zinc-500">
+                            {p.uniqueVisitors} visitors
+                          </p>
+                        </div>
+                        <span className="text-xs font-mono font-bold text-[var(--accent-1)]">
+                          {p.pageViews} views
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <Link
+                href="/admin/analytics"
+                className="mt-4 w-full py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white text-xs font-bold uppercase tracking-wider text-center border border-white/10 transition-colors block"
+              >
+                Deep-Dive Analytics →
+              </Link>
+            </div>
+          </div>
         )}
       </div>
 

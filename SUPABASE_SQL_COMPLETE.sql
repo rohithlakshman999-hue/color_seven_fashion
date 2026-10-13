@@ -386,3 +386,31 @@ CREATE POLICY "Allow insert on collection_products" ON collection_products FOR I
 CREATE POLICY "Allow update on collection_products" ON collection_products FOR UPDATE USING (true);
 CREATE POLICY "Allow delete on collection_products" ON collection_products FOR DELETE USING (true);
 
+-- ==========================================
+-- 18. WEBSITE VISITS (ANALYTICS) TABLE
+-- ==========================================
+CREATE TABLE IF NOT EXISTS website_visits (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  visitor_id VARCHAR(64) NOT NULL,
+  session_id VARCHAR(64) NOT NULL,
+  pathname VARCHAR(500) NOT NULL,
+  page_title VARCHAR(255),
+  referrer VARCHAR(500),
+  device_type VARCHAR(32) DEFAULT 'desktop',
+  browser VARCHAR(64),
+  os VARCHAR(64),
+  ip_hash VARCHAR(64),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_website_visits_created_at ON website_visits(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_website_visits_visitor_id ON website_visits(visitor_id);
+CREATE INDEX IF NOT EXISTS idx_website_visits_pathname ON website_visits(pathname);
+CREATE INDEX IF NOT EXISTS idx_website_visits_visitor_created ON website_visits(visitor_id, created_at);
+
+ALTER TABLE website_visits ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow insert on website_visits" ON website_visits FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow select on website_visits" ON website_visits FOR SELECT USING (true);
+
+
