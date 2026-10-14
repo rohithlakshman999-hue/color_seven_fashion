@@ -143,6 +143,48 @@ export interface CustomerReview {
   updated_at?: string;
 }
 
+export interface DiscountCoupon {
+  id: string;
+  code: string;
+  name: string;
+  description?: string | null;
+  original_price: number;
+  desired_price: number;
+  desired_selling_price?: number;
+  discount_amount: number;
+  discount_percentage: number;
+  applies_to: "entire_order" | "specific_product";
+  product_id?: string | null;
+  product_name?: string | null;
+  product_title?: string | null;
+  min_purchase_amount: number;
+  min_order_amount?: number | null;
+  max_uses?: number | null;
+  used_count: number;
+  max_uses_per_customer?: number | null;
+  start_date?: string | null;
+  expiry_date?: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at?: string;
+}
+
+export interface CouponUsage {
+  id: string;
+  coupon_id: string;
+  coupon_code: string;
+  order_id?: string;
+  customer_name?: string;
+  customer_phone?: string;
+  customer_ref?: string | null;
+  original_amount: number;
+  original_eligible_amount?: number;
+  discount_amount: number;
+  final_amount: number;
+  final_payable_amount?: number;
+  created_at: string;
+}
+
 export interface Wishlist {
   id: string;
   user_id: string;

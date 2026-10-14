@@ -28,6 +28,9 @@ export default function CartDrawer() {
     updateQuantity,
     removeFromCart,
     clearCart,
+    appliedCoupon,
+    discountAmount,
+    finalTotal,
   } = useCart();
   const { contactInfo } = useContactInfo();
   const drawerRef = useRef<HTMLDivElement>(null);
@@ -90,7 +93,13 @@ export default function CartDrawer() {
 
     message += "══════════════════════════════\n";
     message += `*Total Items:* ${totalCount}\n`;
-    message += `*Total Amount:* Rs. ${subtotal.toLocaleString("en-IN")}\n`;
+    message += `*Subtotal:* Rs. ${subtotal.toLocaleString("en-IN")}\n`;
+    if (appliedCoupon && discountAmount > 0) {
+      message += `*Coupon Discount (${appliedCoupon.code}):* -Rs. ${discountAmount.toLocaleString("en-IN")}\n`;
+      message += `*Final Payable Amount:* Rs. ${finalTotal.toLocaleString("en-IN")}\n`;
+    } else {
+      message += `*Total Amount:* Rs. ${subtotal.toLocaleString("en-IN")}\n`;
+    }
     message += "══════════════════════════════\n\n";
     message += "Please confirm my order and share payment and shipping details!";
 

@@ -16,6 +16,7 @@ import {
   BarChart3,
   ArrowRight,
   MessageSquareQuote,
+  TicketPercent,
 } from "lucide-react";
 import { useProducts } from "@/context/ProductContext";
 import { useCatalog } from "@/context/CatalogContext";
@@ -309,7 +310,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Link
           href="/admin/products/add"
           className="group flex items-center gap-4 p-5 bg-[#070707] border border-white/5 rounded-2xl hover:border-[var(--accent-1)]/30 transition-all"
@@ -320,6 +321,18 @@ export default function AdminDashboard() {
           <div>
             <h3 className="font-bold text-white text-sm">Add Product</h3>
             <p className="text-xs text-zinc-500">Create new listing</p>
+          </div>
+        </Link>
+        <Link
+          href="/admin/coupons"
+          className="group flex items-center gap-4 p-5 bg-[#070707] border border-white/5 rounded-2xl hover:border-[var(--accent-1)]/30 transition-all"
+        >
+          <div className="w-12 h-12 rounded-xl bg-[var(--accent-1)]/10 flex items-center justify-center group-hover:bg-[var(--accent-1)]/20 transition-colors shrink-0">
+            <TicketPercent className="w-5 h-5 text-[var(--accent-1)]" />
+          </div>
+          <div>
+            <h3 className="font-bold text-white text-sm">Discount Coupons</h3>
+            <p className="text-xs text-zinc-500">Generate & manage codes</p>
           </div>
         </Link>
         <Link

@@ -18,6 +18,7 @@ import {
   EyeOff,
   BarChart3,
   MessageSquareQuote,
+  TicketPercent,
 } from "lucide-react";
 import { useState } from "react";
 import { ProductProvider } from "@/context/ProductContext";
@@ -26,6 +27,7 @@ import { AdminAuthProvider, useAdminAuth } from "@/context/AdminAuthContext";
 const navItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
+  { href: "/admin/coupons", label: "Discount Coupons", icon: TicketPercent },
   { href: "/admin/reviews", label: "Customer Reviews", icon: MessageSquareQuote },
   { href: "/admin/products", label: "All Products", icon: Package },
   { href: "/admin/products/add", label: "Add Product", icon: PlusCircle },
