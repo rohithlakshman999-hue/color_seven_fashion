@@ -1,5 +1,44 @@
 [
   {
+    "id": "359f6c04-451c-41cc-a6b9-2a17b23c4825",
+    "visitor_id": "2584bfce-3f7f-41d5-a888-ffa540f5b015",
+    "session_id": "739e8ff7-bd92-41d1-bab5-d09d7868f70e",
+    "pathname": "/cart",
+    "page_title": "COLOUR SEVEN FASHION",
+    "referrer": "http://localhost:3000/admin/coupons",
+    "device_type": "desktop",
+    "browser": "Chrome",
+    "os": "Windows",
+    "ip_hash": "b1c9267befbbcf9caa8207f10c9534fa",
+    "created_at": "2026-10-14T04:45:02.163Z"
+  },
+  {
+    "id": "ac0d6dcd-358f-436d-b71b-2f11b43ac63d",
+    "visitor_id": "2584bfce-3f7f-41d5-a888-ffa540f5b015",
+    "session_id": "739e8ff7-bd92-41d1-bab5-d09d7868f70e",
+    "pathname": "/products/armani-automatic-1779857657231",
+    "page_title": "COLOUR SEVEN FASHION",
+    "referrer": "http://localhost:3000/admin/coupons",
+    "device_type": "desktop",
+    "browser": "Chrome",
+    "os": "Windows",
+    "ip_hash": "b1c9267befbbcf9caa8207f10c9534fa",
+    "created_at": "2026-10-14T04:44:54.888Z"
+  },
+  {
+    "id": "f54cf7b4-8e72-44f2-bfed-2e61cee51650",
+    "visitor_id": "2584bfce-3f7f-41d5-a888-ffa540f5b015",
+    "session_id": "739e8ff7-bd92-41d1-bab5-d09d7868f70e",
+    "pathname": "/",
+    "page_title": "COLOUR SEVEN FASHION",
+    "referrer": "http://localhost:3000/admin/coupons",
+    "device_type": "desktop",
+    "browser": "Chrome",
+    "os": "Windows",
+    "ip_hash": "b1c9267befbbcf9caa8207f10c9534fa",
+    "created_at": "2026-10-14T04:44:52.320Z"
+  },
+  {
     "id": "4de15a7f-d1e8-4ea2-b8f9-14d8fe090080",
     "visitor_id": "1982b93a-3c3f-4127-9ca8-3e38a4a0e2f0",
     "session_id": "e237745c-cb41-4296-b866-1da4b2d17ee2",
