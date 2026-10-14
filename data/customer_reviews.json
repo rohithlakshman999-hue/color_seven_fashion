@@ -1,0 +1,93 @@
+[
+  {
+    "id": "rev-danc-001",
+    "customer_name": "Dan C",
+    "customer_image": null,
+    "rating": 5,
+    "review_text": "Amazing collection of luxury watches and streetwear. They do help out if any doubts. Thank you for the amazing quality!",
+    "designation": "Verified Buyer",
+    "is_published": true,
+    "review_date": "2026-10-06",
+    "display_order": 1,
+    "created_at": "2026-10-06T10:30:00.000Z",
+    "updated_at": "2026-10-06T10:30:00.000Z"
+  },
+  {
+    "id": "bceb4acf-6758-4cba-92a5-098372dff7eb",
+    "customer_name": "Vikram Malhotra",
+    "customer_image": null,
+    "rating": 5,
+    "review_text": "The Rolex Submariner replica exceeded every single expectation. Weight, ceramic bezel feel, and sweep of the second hand are pure perfection.",
+    "designation": "Luxury Watch Collector, Delhi",
+    "is_published": true,
+    "review_date": "2026-10-14",
+    "display_order": 2,
+    "created_at": "2026-10-14T03:54:38.150Z",
+    "updated_at": "2026-10-14T03:54:38.150Z"
+  },
+  {
+    "id": "f52a7720-75f2-46eb-bfa2-6228a9710aae",
+    "customer_name": "Aarav Sharma",
+    "customer_image": null,
+    "rating": 5,
+    "review_text": "The craftsmanship on the watches is unbelievable for the price. Delivered in 2 days across India with supreme unboxing packaging!",
+    "designation": "Verified Buyer, Mumbai",
+    "is_published": true,
+    "review_date": "2026-10-10",
+    "display_order": 3,
+    "created_at": "2026-10-14T03:51:25.629Z",
+    "updated_at": "2026-10-14T03:51:25.629Z"
+  },
+  {
+    "id": "rev-priya-004",
+    "customer_name": "Priya Patel",
+    "customer_image": null,
+    "rating": 5,
+    "review_text": "Loved the oversized black hoodie fit and heavy cotton GSM. Perfect boxy streetwear aesthetic that pairs effortlessly with retro sneakers.",
+    "designation": "Fashion Stylist, Bengaluru",
+    "is_published": true,
+    "review_date": "2026-10-12",
+    "display_order": 4,
+    "created_at": "2026-10-12T14:15:00.000Z",
+    "updated_at": "2026-10-12T14:15:00.000Z"
+  },
+  {
+    "id": "rev-rohan-005",
+    "customer_name": "Rohan Mehta",
+    "customer_image": null,
+    "rating": 5,
+    "review_text": "Air Force 1s arrived in immaculate condition. Stitching, sole cushioning, and swoosh details are spot on. 10/10 customer experience.",
+    "designation": "Sneakerhead, Pune",
+    "is_published": true,
+    "review_date": "2026-10-08",
+    "display_order": 5,
+    "created_at": "2026-10-08T09:20:00.000Z",
+    "updated_at": "2026-10-08T09:20:00.000Z"
+  },
+  {
+    "id": "rev-kavya-006",
+    "customer_name": "Kavya Nair",
+    "customer_image": null,
+    "rating": 5,
+    "review_text": "Cash on delivery was seamless and fast. The Audemars Piguet timepiece has a mesmerizing textured dial. Authentic luxury weight and finish!",
+    "designation": "Verified Customer, Kochi",
+    "is_published": true,
+    "review_date": "2026-10-05",
+    "display_order": 6,
+    "created_at": "2026-10-05T16:40:00.000Z",
+    "updated_at": "2026-10-05T16:40:00.000Z"
+  },
+  {
+    "id": "rev-sameer-007",
+    "customer_name": "Sameer Khan",
+    "customer_image": null,
+    "rating": 5,
+    "review_text": "Fast dispatch, responsive WhatsApp support, and luxury packaging box. You get way more than what you pay for. Highly recommended!",
+    "designation": "Verified Buyer, Hyderabad",
+    "is_published": true,
+    "review_date": "2026-10-02",
+    "display_order": 7,
+    "created_at": "2026-10-02T11:00:00.000Z",
+    "updated_at": "2026-10-02T11:00:00.000Z"
+  }
+]

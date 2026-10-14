@@ -5,6 +5,7 @@ import Footer from "@/components/Footer";
 import Providers from "@/components/Providers";
 import CartDrawer from "@/components/CartDrawer";
 import AnalyticsTracker from "@/components/AnalyticsTracker";
+import LiveReviewNotificationPopup from "@/components/LiveReviewNotificationPopup";
 
 export const metadata: Metadata = {
   title: "COLOUR SEVEN FASHION",
@@ -31,6 +32,7 @@ export default function RootLayout({
           <main className="flex-grow">{children}</main>
           <Footer />
           <CartDrawer />
+          <LiveReviewNotificationPopup />
         </Providers>
       </body>
     </html>

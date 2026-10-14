@@ -147,3 +147,20 @@ body {
 .animate-marquee-scroll2 {
   animation: marquee2 25s linear infinite;
 }
+
+/* Continuous smooth scrolling track for testimonials */
+@keyframes testimonials-marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-testimonials-flow {
+  display: flex;
+  width: max-content;
+  animation: testimonials-marquee 45s linear infinite;
+}
+
+.animate-testimonials-flow:hover {
+  animation-play-state: paused;
+}
+

@@ -8,6 +8,7 @@ import ProductCard from "@/components/ProductCard";
 import Image from "next/image";
 import { useHomepageContent } from "@/context/HomepageContentContext";
 import { useProducts } from "@/context/ProductContext";
+import CustomerTestimonialsCarousel from "@/components/CustomerTestimonialsCarousel";
 
 export default function Home() {
   const { getSection, loaded: contentLoaded } = useHomepageContent();
@@ -325,6 +326,9 @@ export default function Home() {
         </div>
       </section>
       )}
+
+      {/* Customer Reviews & Testimonials Carousel */}
+      <CustomerTestimonialsCarousel />
 
       {/* Premium Brand Pillars */}
       {brandPillarsContent.enabled !== false && (

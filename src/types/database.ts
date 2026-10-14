@@ -129,6 +129,20 @@ export interface Review {
   created_at: string;
 }
 
+export interface CustomerReview {
+  id: string;
+  customer_name: string;
+  customer_image?: string | null;
+  rating: number;
+  review_text: string;
+  designation?: string | null;
+  is_published: boolean;
+  review_date: string;
+  display_order?: number;
+  created_at: string;
+  updated_at?: string;
+}
+
 export interface Wishlist {
   id: string;
   user_id: string;

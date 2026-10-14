@@ -12,6 +12,7 @@ import { useCart } from "@/context/CartContext";
 const navLinks = [
   { name: "Home", href: "/" },
   { name: "Shop", href: "/shop", hasDropdown: true },
+  { name: "Reviews", href: "/reviews" },
   { name: "About", href: "/about" },
   { name: "Contact Us", href: "/contact" },
 ];

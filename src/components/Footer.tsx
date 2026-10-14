@@ -51,6 +51,9 @@ export default function Footer() {
             <h3 className="font-bold uppercase tracking-wider text-xs text-[var(--accent-1)] mb-6">Customer Care</h3>
             <ul className="space-y-4 text-sm text-zinc-400">
               <li>
+                <Link href="/reviews" className="hover:text-white transition-luxury">Customer Reviews</Link>
+              </li>
+              <li>
                 <Link href="/contact" className="hover:text-white transition-luxury">Contact Us</Link>
               </li>
               <li>

@@ -17,6 +17,7 @@ const ALLOWED_BUCKETS = [
   "category-images",
   "brand-logos",
   "brand-banners",
+  "customer-reviews",
 ] as const;
 
 type AllowedBucket = (typeof ALLOWED_BUCKETS)[number];

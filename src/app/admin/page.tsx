@@ -15,6 +15,7 @@ import {
   Layers,
   BarChart3,
   ArrowRight,
+  MessageSquareQuote,
 } from "lucide-react";
 import { useProducts } from "@/context/ProductContext";
 import { useCatalog } from "@/context/CatalogContext";
@@ -308,29 +309,41 @@ export default function AdminDashboard() {
       </div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Link
           href="/admin/products/add"
-          className="group flex items-center gap-4 p-6 bg-[#070707] border border-white/5 rounded-2xl hover:border-[var(--accent-1)]/30 transition-all"
+          className="group flex items-center gap-4 p-5 bg-[#070707] border border-white/5 rounded-2xl hover:border-[var(--accent-1)]/30 transition-all"
         >
-          <div className="w-12 h-12 rounded-xl bg-[var(--accent-1)]/10 flex items-center justify-center group-hover:bg-[var(--accent-1)]/20 transition-colors">
+          <div className="w-12 h-12 rounded-xl bg-[var(--accent-1)]/10 flex items-center justify-center group-hover:bg-[var(--accent-1)]/20 transition-colors shrink-0">
             <PlusCircle className="w-5 h-5 text-[var(--accent-1)]" />
           </div>
           <div>
-            <h3 className="font-bold text-white">Add Product</h3>
-            <p className="text-xs text-zinc-500">Create a new product listing</p>
+            <h3 className="font-bold text-white text-sm">Add Product</h3>
+            <p className="text-xs text-zinc-500">Create new listing</p>
+          </div>
+        </Link>
+        <Link
+          href="/admin/reviews"
+          className="group flex items-center gap-4 p-5 bg-[#070707] border border-white/5 rounded-2xl hover:border-[#c9a227]/30 transition-all"
+        >
+          <div className="w-12 h-12 rounded-xl bg-[#c9a227]/10 flex items-center justify-center group-hover:bg-[#c9a227]/20 transition-colors shrink-0">
+            <MessageSquareQuote className="w-5 h-5 text-[#c9a227]" />
+          </div>
+          <div>
+            <h3 className="font-bold text-white text-sm">Customer Reviews</h3>
+            <p className="text-xs text-zinc-500">Manage testimonials</p>
           </div>
         </Link>
         <Link
           href="/"
           target="_blank"
-          className="group flex items-center gap-4 p-6 bg-[#070707] border border-white/5 rounded-2xl hover:border-[#c9a227]/30 transition-all"
+          className="group flex items-center gap-4 p-5 bg-[#070707] border border-white/5 rounded-2xl hover:border-white/20 transition-all"
         >
-          <div className="w-12 h-12 rounded-xl bg-[#c9a227]/10 flex items-center justify-center group-hover:bg-[#c9a227]/20 transition-colors">
-            <ExternalLink className="w-5 h-5 text-[#c9a227]" />
+          <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center group-hover:bg-white/10 transition-colors shrink-0">
+            <ExternalLink className="w-5 h-5 text-zinc-300" />
           </div>
           <div>
-            <h3 className="font-bold text-white">View Store</h3>
+            <h3 className="font-bold text-white text-sm">View Store</h3>
             <p className="text-xs text-zinc-500">Open storefront in new tab</p>
           </div>
         </Link>
