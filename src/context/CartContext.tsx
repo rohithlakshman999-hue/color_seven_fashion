@@ -9,6 +9,7 @@ import {
   useMemo,
   ReactNode,
 } from "react";
+import { useSiteSettings } from "@/context/SiteSettingsContext";
 
 export interface CartItem {
   id: string; // unique key combining productId + size + color
@@ -73,6 +74,12 @@ interface CartContextType {
   couponSuccessMessage: string | null;
   applyCoupon: (code: string) => Promise<{ success: boolean; message?: string; error?: string }>;
   removeCoupon: () => void;
+  // Delivery integration
+  deliveryCharge: number;
+  baseDeliveryCharge: number;
+  freeDeliveryThreshold: number;
+  deliveryLabel: string;
+  isFreeDelivery: boolean;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -273,9 +280,27 @@ export function CartProvider({ children }: { children: ReactNode }) {
     };
   }, [items, appliedCoupon?.code, removeCoupon]);
 
+  const { shippingSettings } = useSiteSettings();
+
+  const baseDeliveryCharge = shippingSettings?.delivery_charge ?? 0;
+  const freeDeliveryThreshold = shippingSettings?.free_delivery_threshold ?? 0;
+  const deliveryLabel = shippingSettings?.delivery_label?.trim() || "Pan-India Delivery";
+
+  const deliveryCharge = useMemo(() => {
+    if (items.length === 0) return 0;
+    if (baseDeliveryCharge <= 0) return 0;
+    if (freeDeliveryThreshold > 0 && subtotal >= freeDeliveryThreshold) {
+      return 0; // Eligible for free delivery threshold
+    }
+    return baseDeliveryCharge;
+  }, [items.length, baseDeliveryCharge, freeDeliveryThreshold, subtotal]);
+
+  const isFreeDelivery = deliveryCharge === 0;
+
   const finalTotal = useMemo(() => {
-    return Math.max(0, subtotal - discountAmount);
-  }, [subtotal, discountAmount]);
+    if (items.length === 0) return 0;
+    return Math.max(0, subtotal - discountAmount) + deliveryCharge;
+  }, [items.length, subtotal, discountAmount, deliveryCharge]);
 
   const openCart = useCallback(() => setIsCartOpen(true), []);
   const closeCart = useCallback(() => setIsCartOpen(false), []);
@@ -370,6 +395,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
       couponSuccessMessage,
       applyCoupon,
       removeCoupon,
+      deliveryCharge,
+      baseDeliveryCharge,
+      freeDeliveryThreshold,
+      deliveryLabel,
+      isFreeDelivery,
     }),
     [
       items,
@@ -392,6 +422,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
       couponSuccessMessage,
       applyCoupon,
       removeCoupon,
+      deliveryCharge,
+      baseDeliveryCharge,
+      freeDeliveryThreshold,
+      deliveryLabel,
+      isFreeDelivery,
     ]
   );
 

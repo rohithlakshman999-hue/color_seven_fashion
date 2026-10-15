@@ -17,9 +17,11 @@ import {
   ArrowRight,
   MessageSquareQuote,
   TicketPercent,
+  Truck,
 } from "lucide-react";
 import { useProducts } from "@/context/ProductContext";
 import { useCatalog } from "@/context/CatalogContext";
+import { useSiteSettings } from "@/context/SiteSettingsContext";
 import { brandOptionKey } from "@/lib/catalogHelpers";
 import AnalyticsSummaryCards from "@/components/admin/AnalyticsSummaryCards";
 import AnalyticsLineChart from "@/components/admin/AnalyticsLineChart";
@@ -50,6 +52,7 @@ const categoryIconBySlug: Record<string, React.ComponentType<{ className?: strin
 export default function AdminDashboard() {
   const { products, loaded } = useProducts();
   const { categories: catalogCategories, brands: catalogBrands } = useCatalog();
+  const { shippingSettings } = useSiteSettings();
   const [analytics, setAnalytics] = useState<AnalyticsDashboardData | null>(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(true);
 
@@ -100,7 +103,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Overview Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
         {/* Total Products */}
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
@@ -140,6 +143,40 @@ export default function AdminDashboard() {
             );
           }
         )}
+
+        {/* Delivery Charge Overview Card */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.35 }}
+        >
+          <Link
+            href="/admin/settings"
+            className="group block h-full bg-[#070707] border border-white/5 hover:border-[var(--accent-1)]/40 rounded-2xl p-5 transition-all"
+          >
+            <div className="flex items-start justify-between mb-3">
+              <span className="text-xs text-zinc-500 uppercase tracking-wider font-medium">
+                Delivery Charge
+              </span>
+              <Truck className="w-4 h-4 text-[var(--accent-1)] group-hover:scale-110 transition-transform" />
+            </div>
+            <div className="flex items-baseline gap-1.5 flex-wrap">
+              <p className="text-2xl font-black text-white">
+                {shippingSettings.delivery_charge === 0
+                  ? "FREE"
+                  : `₹${shippingSettings.delivery_charge}`}
+              </p>
+              {shippingSettings.free_delivery_threshold > 0 && (
+                <span className="text-[10px] text-zinc-500 font-bold">
+                  (&gt;₹{shippingSettings.free_delivery_threshold})
+                </span>
+              )}
+            </div>
+            <span className="text-[10px] text-[var(--accent-1)] font-bold mt-2 flex items-center gap-1 group-hover:underline">
+              Settings &rarr;
+            </span>
+          </Link>
+        </motion.div>
       </div>
 
       {/* Website Visitor Analytics Section */}

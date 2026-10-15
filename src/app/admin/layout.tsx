@@ -19,6 +19,7 @@ import {
   BarChart3,
   MessageSquareQuote,
   TicketPercent,
+  Settings,
 } from "lucide-react";
 import { useState } from "react";
 import { ProductProvider } from "@/context/ProductContext";
@@ -33,6 +34,7 @@ const navItems = [
   { href: "/admin/products/add", label: "Add Product", icon: PlusCircle },
   { href: "/admin/brands", label: "Brands", icon: Tag },
   { href: "/admin/categories", label: "Categories", icon: Layers },
+  { href: "/admin/settings", label: "Settings", icon: Settings },
 ];
 
 /* ───── Login Screen ───── */

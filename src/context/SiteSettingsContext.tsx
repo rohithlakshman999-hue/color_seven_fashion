@@ -11,8 +11,21 @@ import {
 import { supabase } from "@/lib/supabase";
 import type { SiteSettings } from "@/types/database";
 
+export interface ShippingSettings {
+  delivery_charge: number;
+  free_delivery_threshold: number;
+  delivery_label: string;
+}
+
+const defaultShippingSettings: ShippingSettings = {
+  delivery_charge: 0,
+  free_delivery_threshold: 0,
+  delivery_label: "Pan-India Delivery",
+};
+
 interface SiteSettingsContextType {
   settings: Record<string, Record<string, unknown>>;
+  shippingSettings: ShippingSettings;
   loaded: boolean;
   loading: boolean;
   refresh: () => Promise<void>;
@@ -77,14 +90,17 @@ export function SiteSettingsProvider({ children }: { children: ReactNode }) {
     try {
       const { error } = await supabase
         .from("site_settings")
-        .upsert({
-          setting_key: key,
-          setting_value: value,
-          updated_at: new Date().toISOString(),
-        });
+        .upsert(
+          {
+            setting_key: key,
+            setting_value: value,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "setting_key" }
+        );
 
       if (error)
-    throw new Error(error?.message || JSON.stringify(error) || "Unknown error");
+        throw new Error(error?.message || JSON.stringify(error) || "Unknown error");
 
       setSettings((prev) => ({
         ...prev,
@@ -108,8 +124,25 @@ export function SiteSettingsProvider({ children }: { children: ReactNode }) {
     [settings]
   );
 
+  const shippingSettings: ShippingSettings = {
+    delivery_charge:
+      typeof settings["shipping_settings"]?.delivery_charge === "number"
+        ? Math.max(0, settings["shipping_settings"].delivery_charge as number)
+        : Number(settings["shipping_settings"]?.delivery_charge) || 0,
+    free_delivery_threshold:
+      typeof settings["shipping_settings"]?.free_delivery_threshold === "number"
+        ? Math.max(0, settings["shipping_settings"].free_delivery_threshold as number)
+        : Number(settings["shipping_settings"]?.free_delivery_threshold) || 0,
+    delivery_label:
+      typeof settings["shipping_settings"]?.delivery_label === "string" &&
+      (settings["shipping_settings"].delivery_label as string).trim()
+        ? (settings["shipping_settings"].delivery_label as string).trim()
+        : "Pan-India Delivery",
+  };
+
   const value = {
     settings,
+    shippingSettings,
     loaded,
     loading,
     refresh,

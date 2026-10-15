@@ -32,6 +32,11 @@ export default function CartDrawer() {
     appliedCoupon,
     discountAmount,
     finalTotal,
+    deliveryCharge,
+    baseDeliveryCharge,
+    freeDeliveryThreshold,
+    deliveryLabel,
+    isFreeDelivery,
   } = useCart();
   const { contactInfo } = useContactInfo();
   const drawerRef = useRef<HTMLDivElement>(null);
@@ -97,10 +102,13 @@ export default function CartDrawer() {
     message += `*Subtotal:* Rs. ${subtotal.toLocaleString("en-IN")}\n`;
     if (appliedCoupon && discountAmount > 0) {
       message += `*Coupon Discount (${appliedCoupon.code}):* -Rs. ${discountAmount.toLocaleString("en-IN")}\n`;
-      message += `*Final Payable Amount:* Rs. ${finalTotal.toLocaleString("en-IN")}\n`;
-    } else {
-      message += `*Total Amount:* Rs. ${subtotal.toLocaleString("en-IN")}\n`;
     }
+    if (deliveryCharge > 0) {
+      message += `*Delivery (${deliveryLabel}):* Rs. ${deliveryCharge.toLocaleString("en-IN")}\n`;
+    } else {
+      message += `*Delivery (${deliveryLabel}):* FREE\n`;
+    }
+    message += `*Total Payable Amount:* Rs. ${finalTotal.toLocaleString("en-IN")}\n`;
     message += "══════════════════════════════\n\n";
     message += "Please confirm my order and share payment and shipping details!";
 
@@ -319,13 +327,26 @@ export default function CartDrawer() {
                     </span>
                   </div>
                   <div className="flex justify-between text-zinc-400">
-                    <span>Delivery</span>
-                    <span className="font-bold text-[#c9a227]">FREE</span>
+                    <span>{deliveryLabel}</span>
+                    {isFreeDelivery ? (
+                      <span className="flex items-center gap-1.5 font-bold text-[#c9a227]">
+                        {baseDeliveryCharge > 0 && freeDeliveryThreshold > 0 && subtotal >= freeDeliveryThreshold && (
+                          <span className="text-zinc-500 line-through text-[11px] font-normal">
+                            ₹{baseDeliveryCharge.toLocaleString("en-IN")}
+                          </span>
+                        )}
+                        <span>FREE</span>
+                      </span>
+                    ) : (
+                      <span className="font-bold text-white">
+                        ₹{deliveryCharge.toLocaleString("en-IN")}
+                      </span>
+                    )}
                   </div>
                   <div className="flex justify-between border-t border-white/10 pt-2 text-sm font-black text-white">
                     <span>Total Amount</span>
                     <span className="text-base text-[var(--accent-1)]">
-                      ₹{subtotal.toLocaleString("en-IN")}
+                      ₹{finalTotal.toLocaleString("en-IN")}
                     </span>
                   </div>
                 </div>
