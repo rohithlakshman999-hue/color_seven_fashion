@@ -9,6 +9,7 @@ import { useProducts, type Product as StoreProduct } from "@/context/ProductCont
 import AdminSelect, { AdminSelectOption } from "@/components/AdminSelect";
 import { ArrowLeft, Upload, X, Loader, AlertCircle, CheckCircle, Trash2, Plus, Package, Edit2 } from "lucide-react";
 import Link from "next/link";
+import { formatInrPrice } from "@/lib/pricing";
 
 export default function EditBrandPage() {
   const router = useRouter();
@@ -507,10 +508,24 @@ export default function EditBrandPage() {
                   </div>
                 </div>
                 <p className="text-sm text-zinc-400 line-clamp-2 mb-3">{product.description}</p>
-                <div className="flex items-center gap-2">
-                  <span className="text-lg font-bold text-[var(--accent-1)]">
-                    ₹{product.price.toLocaleString("en-IN")}
-                  </span>
+                <div className="flex flex-wrap items-center gap-2">
+                  {product.originalPrice && product.originalPrice > product.price ? (
+                    <>
+                      <span className="text-xs text-zinc-500 line-through">
+                        {formatInrPrice(product.originalPrice)}
+                      </span>
+                      <span className="text-lg font-black text-white">
+                        {formatInrPrice(product.price)}
+                      </span>
+                      <span className="text-xs font-black text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded">
+                        {product.discountPercentage || Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}% OFF
+                      </span>
+                    </>
+                  ) : (
+                    <span className="text-lg font-bold text-white">
+                      {formatInrPrice(product.price)}
+                    </span>
+                  )}
                 </div>
                 {product.isNew && (
                   <span className="mt-2 inline-block text-xs px-2 py-1 bg-yellow-500/10 text-yellow-400 rounded">

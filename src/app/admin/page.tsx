@@ -23,6 +23,7 @@ import { useCatalog } from "@/context/CatalogContext";
 import { brandOptionKey } from "@/lib/catalogHelpers";
 import AnalyticsSummaryCards from "@/components/admin/AnalyticsSummaryCards";
 import AnalyticsLineChart from "@/components/admin/AnalyticsLineChart";
+import { formatInrPrice } from "@/lib/pricing";
 import { AnalyticsDashboardData } from "@/types/analytics";
 
 const categoryIcons: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -400,9 +401,25 @@ export default function AdminDashboard() {
                     {product.category} · {product.brand}
                   </p>
                 </div>
-                <span className="text-sm font-bold text-[var(--accent-1)]">
-                  {currency.format(product.price)}
-                </span>
+                <div className="text-right">
+                  {product.originalPrice && product.originalPrice > product.price ? (
+                    <div className="flex flex-col items-end">
+                      <span className="text-xs text-zinc-500 line-through">
+                        {formatInrPrice(product.originalPrice)}
+                      </span>
+                      <span className="text-sm font-black text-white">
+                        {formatInrPrice(product.price)}
+                      </span>
+                      <span className="text-[10px] font-black text-emerald-400">
+                        {product.discountPercentage || Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}% OFF
+                      </span>
+                    </div>
+                  ) : (
+                    <span className="text-sm font-bold text-white">
+                      {formatInrPrice(product.price)}
+                    </span>
+                  )}
+                </div>
               </Link>
             ))}
           </div>

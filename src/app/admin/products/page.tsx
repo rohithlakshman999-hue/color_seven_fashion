@@ -5,6 +5,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { Search, Edit2, Trash2, Plus, Package } from "lucide-react";
 import { useProducts } from "@/context/ProductContext";
+import { formatInrPrice } from "@/lib/pricing";
 
 const currency = new Intl.NumberFormat("en-IN", {
   style: "currency",
@@ -170,8 +171,24 @@ export default function AdminProductsPage() {
                         {product.category}
                       </span>
                     </td>
-                    <td className="px-5 py-4 text-sm text-right font-semibold text-white">
-                      {currency.format(product.price)}
+                    <td className="px-5 py-4 text-sm text-right">
+                      {product.originalPrice && product.originalPrice > product.price ? (
+                        <div className="flex flex-col items-end">
+                          <span className="text-xs text-zinc-500 line-through">
+                            {formatInrPrice(product.originalPrice)}
+                          </span>
+                          <span className="font-bold text-white">
+                            {formatInrPrice(product.price)}
+                          </span>
+                          <span className="text-[10px] font-black text-emerald-400">
+                            {product.discountPercentage || Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}% OFF
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="font-semibold text-white">
+                          {formatInrPrice(product.price)}
+                        </span>
+                      )}
                     </td>
                     <td className="px-5 py-4 text-sm text-center text-zinc-400">
                       {product.colors.length}
@@ -245,10 +262,24 @@ export default function AdminProductsPage() {
                     <p className="text-xs text-zinc-500 mt-0.5">
                       {product.brand} · {product.category}
                     </p>
-                    <div className="flex items-center gap-2 mt-2">
-                      <span className="text-sm font-bold text-[var(--accent-1)]">
-                        {currency.format(product.price)}
-                      </span>
+                    <div className="flex flex-wrap items-center gap-2 mt-2">
+                      {product.originalPrice && product.originalPrice > product.price ? (
+                        <>
+                          <span className="text-xs text-zinc-500 line-through">
+                            {formatInrPrice(product.originalPrice)}
+                          </span>
+                          <span className="text-sm font-black text-white">
+                            {formatInrPrice(product.price)}
+                          </span>
+                          <span className="text-[10px] font-black text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded">
+                            {product.discountPercentage || Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}% OFF
+                          </span>
+                        </>
+                      ) : (
+                        <span className="text-sm font-bold text-white">
+                          {formatInrPrice(product.price)}
+                        </span>
+                      )}
                       {product.isNew && (
                         <span className="text-[10px] uppercase tracking-wider font-bold text-[var(--accent-1)] bg-[var(--accent-1)]/10 px-1.5 py-0.5 rounded">
                           New

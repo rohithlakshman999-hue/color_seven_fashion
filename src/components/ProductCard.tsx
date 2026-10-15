@@ -5,6 +5,8 @@ import Link from "next/link";
 import { Heart, ShoppingBag, Check } from "lucide-react";
 import Image from "next/image";
 import { useCart } from "@/context/CartContext";
+import ProductPriceDisplay from "@/components/ProductPriceDisplay";
+import { calculateDiscount } from "@/lib/pricing";
 
 interface ProductCardProps {
   product: {
@@ -13,6 +15,9 @@ interface ProductCardProps {
     name: string;
     brand?: string;
     price: number;
+    originalPrice?: number;
+    discountPrice?: number;
+    discountPercentage?: number;
     images: string[];
     category: string;
     isNew?: boolean;
@@ -25,12 +30,18 @@ function ProductCard({ product }: ProductCardProps) {
   const [justAdded, setJustAdded] = useState(false);
   const { addToCart } = useCart();
 
+  const discount = calculateDiscount(
+    product.originalPrice ?? product.price,
+    product.discountPrice ?? (product.originalPrice ? product.price : undefined)
+  );
+
   const handleQuickAdd = () => {
     addToCart({
       productId: product.id,
       name: product.name,
       brand: product.brand,
       price: product.price,
+      originalPrice: product.originalPrice,
       image: product.images[0] || "/images/chrono_watch.png",
       quantity: 1,
       slug: product.slug,
@@ -50,6 +61,11 @@ function ProductCard({ product }: ProductCardProps) {
         {product.isNew && (
           <span className="absolute top-3 left-3 z-10 bg-[var(--accent-1)] text-black text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded shadow-lg">
             NEW
+          </span>
+        )}
+        {discount.hasDiscount && (
+          <span className="absolute top-3 right-3 z-10 bg-emerald-500 text-black text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded shadow-lg">
+            {discount.discountPercentage}% OFF
           </span>
         )}
         <Link href={`/products/${product.slug || product.id}`} className="relative block w-full h-full">
@@ -116,9 +132,16 @@ function ProductCard({ product }: ProductCardProps) {
         <h3 className="text-sm font-bold text-white uppercase tracking-wide line-clamp-2 group-hover:text-[var(--accent-1)] transition-colors">
           {product.name}
         </h3>
-        <p className="text-[var(--accent-1)] font-black text-sm mt-2">
-          ₹{product.price.toLocaleString("en-IN")}
-        </p>
+        <div className="mt-2.5">
+          <ProductPriceDisplay
+            originalPrice={product.originalPrice}
+            price={product.price}
+            discountPrice={product.discountPrice}
+            discountPercentage={product.discountPercentage}
+            size="md"
+            layout="vertical"
+          />
+        </div>
       </Link>
     </div>
   );

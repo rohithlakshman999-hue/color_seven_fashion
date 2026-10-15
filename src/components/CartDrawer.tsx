@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { useCart, CartItem } from "@/context/CartContext";
 import { useContactInfo } from "@/context/ContactInfoContext";
+import { formatInrPrice } from "@/lib/pricing";
 
 export default function CartDrawer() {
   const {
@@ -256,13 +257,25 @@ export default function CartDrawer() {
 
                         {/* Price & Quantity Controls */}
                         <div className="mt-3 flex items-center justify-between">
-                          <div className="flex items-baseline gap-2">
-                            <span className="text-sm font-black text-[var(--accent-1)]">
-                              ₹{(item.price * item.quantity).toLocaleString("en-IN")}
-                            </span>
+                          <div className="flex flex-col">
+                            <div className="flex items-baseline flex-wrap gap-1.5">
+                              {item.originalPrice && item.originalPrice > item.price && (
+                                <span className="text-xs text-zinc-500 line-through">
+                                  {formatInrPrice(item.originalPrice * item.quantity)}
+                                </span>
+                              )}
+                              <span className="text-sm font-black text-white">
+                                {formatInrPrice(item.price * item.quantity)}
+                              </span>
+                              {item.originalPrice && item.originalPrice > item.price && (
+                                <span className="text-[10px] font-black text-emerald-400 bg-emerald-500/10 px-1 py-0.2 rounded">
+                                  {Math.round(((item.originalPrice - item.price) / item.originalPrice) * 100)}% OFF
+                                </span>
+                              )}
+                            </div>
                             {item.quantity > 1 && (
                               <span className="text-[10px] text-zinc-500">
-                                (₹{item.price.toLocaleString("en-IN")} ea)
+                                ({formatInrPrice(item.price)} each)
                               </span>
                             )}
                           </div>

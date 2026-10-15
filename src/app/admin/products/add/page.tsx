@@ -11,6 +11,7 @@ import { brandOptionKey } from "@/lib/catalogHelpers";
 import AdminSelect, { AdminSelectOption } from "@/components/AdminSelect";
 import { ArrowLeft, Upload, X, Loader, AlertCircle, CheckCircle } from "lucide-react";
 import Link from "next/link";
+import { formatInrPrice } from "@/lib/pricing";
 
 function convertGoogleDriveUrl(url: string): string {
   const trimmed = url.trim();
@@ -57,7 +58,8 @@ export default function AddProductPage() {
     tags: "",
     categoryId: "",
     brandId: "",
-    price: "",
+    originalPrice: "",
+    discountPrice: "",
     stockQuantity: "",
     stockStatus: "in_stock" as "in_stock" | "out_of_stock" | "low_stock",
     collectionType: "",
@@ -211,12 +213,43 @@ export default function AddProductPage() {
     setSaving(true);
     try {
       const validImages = imageUrls.filter((url) => url.trim() !== "");
-      const price = normalizePriceValue(formData.price);
+      const originalPrice = normalizePriceValue(formData.originalPrice);
+
+      if (!formData.originalPrice || originalPrice <= 0) {
+        setMessage({ text: "Please enter a valid Original Price / MRP greater than ₹0", type: "error" });
+        setSaving(false);
+        return;
+      }
+
+      const hasDiscountInput = formData.discountPrice.trim() !== "";
+      const discountPrice = hasDiscountInput ? normalizePriceValue(formData.discountPrice) : null;
+
+      if (hasDiscountInput) {
+        if (discountPrice === null || discountPrice <= 0) {
+          setMessage({ text: "Discounted selling price must be greater than ₹0", type: "error" });
+          setSaving(false);
+          return;
+        }
+        if (discountPrice >= originalPrice) {
+          setMessage({
+            text: `Discounted selling price (₹${discountPrice.toFixed(2)}) must be strictly lower than Original Price / MRP (₹${originalPrice.toFixed(2)})`,
+            type: "error",
+          });
+          setSaving(false);
+          return;
+        }
+      }
+
+      const effectiveSellingPrice = (hasDiscountInput && discountPrice && discountPrice < originalPrice)
+        ? discountPrice
+        : originalPrice;
 
       await addProduct({
         name: formData.name.trim(),
         brand: selectedBrand.name,
-        price,
+        price: effectiveSellingPrice,
+        originalPrice: originalPrice,
+        discountPrice: hasDiscountInput && discountPrice && discountPrice < originalPrice ? discountPrice : undefined,
         category: slugToProductCategory(selectedCategory.slug),
         images:
           validImages.length > 0
@@ -233,7 +266,7 @@ export default function AddProductPage() {
         isTrending: formData.isTrending,
       });
 
-      setMessage({ text: "✓ Product added successfully!", type: "success" });
+      setMessage({ text: "✓ Product added successfully with pricing!", type: "success" });
       setTimeout(() => router.push("/admin/products"), 1500);
     } catch (error) {
       console.error("Error:", error);
@@ -429,28 +462,139 @@ export default function AddProductPage() {
         </div>
 
         {/* Pricing */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-bold text-white">Pricing</h3>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label className="text-xs uppercase tracking-wider text-zinc-500 font-medium">
-                Price (₹) *
-              </label>
-              <input
-                type="number"
-                name="price"
-                value={formData.price}
-                onChange={handleInputChange}
-                required
-                min="0"
-                step="0.01"
-                placeholder="9999"
-                className="w-full bg-black border border-white/10 rounded-lg px-4 py-3 text-white placeholder-zinc-600 focus:border-[var(--accent-1)] focus:outline-none transition-colors"
-              />
+        {(() => {
+          const orig = parseFloat(formData.originalPrice);
+          const hasOrig = !isNaN(orig) && orig > 0;
+          const discTrimmed = formData.discountPrice.trim();
+          const disc = discTrimmed !== "" ? parseFloat(discTrimmed) : null;
+          const hasDisc = disc !== null && !isNaN(disc);
+
+          let discountError = "";
+          let discountPercent = 0;
+          let hasActiveDiscount = false;
+
+          if (hasOrig && hasDisc) {
+            if (disc <= 0) {
+              discountError = "Discounted selling price must be greater than ₹0";
+            } else if (disc >= orig) {
+              discountError = `Discounted selling price (₹${disc.toFixed(2)}) must be strictly lower than Original Price / MRP (₹${orig.toFixed(2)})`;
+            } else {
+              discountPercent = Math.round(((orig - disc) / orig) * 100);
+              hasActiveDiscount = true;
+            }
+          }
+
+          return (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-bold text-white">Pricing & Discount Controls</h3>
+                  <p className="text-xs text-zinc-400">
+                    Set the product MRP and optional discounted selling price
+                  </p>
+                </div>
+                {hasActiveDiscount && (
+                  <span className="text-xs font-black text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full uppercase tracking-wider">
+                    {discountPercent}% OFF
+                  </span>
+                )}
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Original Price / MRP */}
+                <div className="space-y-2">
+                  <label className="text-xs uppercase tracking-wider text-zinc-400 font-medium flex items-center justify-between">
+                    <span>Original Price / MRP (₹) *</span>
+                    <span className="text-[10px] text-zinc-500">Regular full price</span>
+                  </label>
+                  <input
+                    type="number"
+                    name="originalPrice"
+                    value={formData.originalPrice}
+                    onChange={handleInputChange}
+                    required
+                    min="0"
+                    step="0.01"
+                    placeholder="e.g. 420.00"
+                    className="w-full bg-black border border-white/10 rounded-lg px-4 py-3 text-white placeholder-zinc-600 focus:border-[var(--accent-1)] focus:outline-none transition-colors"
+                  />
+                  <p className="text-[11px] text-zinc-500">
+                    Displayed with strikethrough when a discount is active.
+                  </p>
+                </div>
+
+                {/* Discounted Selling Price */}
+                <div className="space-y-2">
+                  <label className="text-xs uppercase tracking-wider text-zinc-400 font-medium flex items-center justify-between">
+                    <span>Discounted Selling Price (₹)</span>
+                    <span className="text-[10px] text-zinc-500">Optional offer price</span>
+                  </label>
+                  <input
+                    type="number"
+                    name="discountPrice"
+                    value={formData.discountPrice}
+                    onChange={handleInputChange}
+                    min="0"
+                    step="0.01"
+                    placeholder="e.g. 299.00 (leave empty if no discount)"
+                    className={`w-full bg-black border rounded-lg px-4 py-3 text-white placeholder-zinc-600 focus:outline-none transition-colors ${
+                      discountError ? "border-red-500 focus:border-red-500" : "border-white/10 focus:border-[var(--accent-1)]"
+                    }`}
+                  />
+                  <p className="text-[11px] text-zinc-500">
+                    Leave empty if this product has no discount.
+                  </p>
+                </div>
+              </div>
+
+              {/* Real-time Pricing Preview Banner */}
+              {discountError && (
+                <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-xs flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                  <span>{discountError}</span>
+                </div>
+              )}
+
+              {hasOrig && !discountError && (
+                <div className="p-4 rounded-xl bg-black border border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <span className="text-[10px] uppercase tracking-widest text-zinc-500 font-bold block mb-1">
+                      Customer Storefront Preview
+                    </span>
+                    {hasActiveDiscount ? (
+                      <div className="flex items-baseline flex-wrap gap-2.5">
+                        <span className="text-sm text-zinc-500 line-through font-semibold">
+                          {formatInrPrice(orig)}
+                        </span>
+                        <span className="text-xl font-black text-white">
+                          {formatInrPrice(disc!)}
+                        </span>
+                        <span className="text-xs font-black text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded uppercase tracking-wider">
+                          {discountPercent}% OFF
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="text-lg font-black text-white">
+                        {formatInrPrice(orig)}
+                        <span className="text-xs font-normal text-zinc-500 ml-2">
+                          (Regular price — no strikethrough or discount badge)
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  {hasActiveDiscount && (
+                    <div className="text-right">
+                      <span className="text-[10px] uppercase tracking-widest text-zinc-500 block">Customer Savings</span>
+                      <span className="text-sm font-black text-emerald-400">
+                        {formatInrPrice(orig - disc!)} per unit
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
-          </div>
-        </div>
+          );
+        })()}
 
         {/* Inventory */}
         <div className="space-y-4">

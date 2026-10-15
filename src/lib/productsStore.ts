@@ -10,6 +10,7 @@ import {
   adminUpsertProductImages,
   adminUpsertProductVariants,
 } from "@/app/actions/adminActions";
+import { calculateDiscount } from "@/lib/pricing";
 
 let memoryCache: Product[] | null = null;
 
@@ -85,18 +86,19 @@ async function fetchRemoteProducts(): Promise<Product[] | null> {
       const rawTags = r.tags as string[] | null;
       const isTrending = Array.isArray(rawTags) && rawTags.includes("trending");
 
-      const discountPrice = Number(r.discount_price);
-      const originalPrice = Number(r.original_price);
-      const finalPrice = Number.isFinite(discountPrice) && discountPrice > 0 
-        ? discountPrice 
-        : (Number.isFinite(originalPrice) && originalPrice > 0 ? originalPrice : 0);
+      const discountPriceRaw = Number(r.discount_price);
+      const originalPriceRaw = Number(r.original_price);
+      const pricing = calculateDiscount(originalPriceRaw, discountPriceRaw);
 
       return {
         id: String(r.id),
         slug: String(r.slug),
         name: String(r.name),
         brand: brandObj?.name || "Colour Seven",
-        price: finalPrice,
+        price: pricing.sellingPrice,
+        originalPrice: pricing.hasDiscount ? pricing.originalPrice : undefined,
+        discountPrice: pricing.hasDiscount ? pricing.sellingPrice : undefined,
+        discountPercentage: pricing.hasDiscount ? pricing.discountPercentage : undefined,
         category: slugToProductCategory(slug),
         images,
         description: String(r.full_description || r.short_description || ""),
@@ -287,12 +289,20 @@ export async function ensureRemoteProduct(product: Product | undefined, currentI
 }
 
 export async function addProduct(product: Omit<Product, "id">): Promise<Product> {
-  const price = Number(product.price);
-  const validatedPrice = Number.isFinite(price) && price >= 0 ? price : 0;
+  const origPrice = Number(product.originalPrice ?? product.price ?? 0);
+  const validatedOriginalPrice = Number.isFinite(origPrice) && origPrice >= 0 ? origPrice : 0;
+  
+  const pricing = calculateDiscount(
+    validatedOriginalPrice,
+    product.discountPrice
+  );
   
   const newProduct: Product = {
     ...product,
-    price: validatedPrice,
+    price: pricing.sellingPrice,
+    originalPrice: pricing.hasDiscount ? pricing.originalPrice : undefined,
+    discountPrice: pricing.hasDiscount ? pricing.sellingPrice : undefined,
+    discountPercentage: pricing.hasDiscount ? pricing.discountPercentage : undefined,
     id: `${Date.now()}${Math.random().toString(36).slice(2, 9)}`,
   };
 
@@ -312,8 +322,9 @@ export async function addProduct(product: Omit<Product, "id">): Promise<Product>
       short_description: product.description.slice(0, 200),
       full_description: product.description,
       sku: `SKU-${Date.now()}`,
-      original_price: validatedPrice,
-      discount_price: validatedPrice,
+      original_price: pricing.originalPrice,
+      discount_price: pricing.sellingPrice,
+      offer_percentage: pricing.discountPercentage,
       featured: product.isNew,
       tags: product.isTrending ? ["trending"] : [],
       is_active: true,
@@ -396,13 +407,43 @@ export async function updateProduct(
     // 1. Verify and map core fields
     if (product.name !== undefined) payload.name = product.name;
     
-    if (product.price !== undefined) {
-      const price = Number(product.price);
-      if (!Number.isFinite(price) || price < 0) {
-        throw new Error("Invalid price value");
+    if (
+      product.originalPrice !== undefined ||
+      product.discountPrice !== undefined ||
+      product.price !== undefined
+    ) {
+      const current = (memoryCache || []).find((p) => p.id === id) || existingProduct;
+      const targetOriginal = product.originalPrice !== undefined
+        ? Number(product.originalPrice)
+        : (product.price !== undefined && product.discountPrice === undefined
+            ? Number(product.price)
+            : Number(current?.originalPrice ?? current?.price ?? 0));
+
+      if (!Number.isFinite(targetOriginal) || targetOriginal < 0) {
+        throw new Error("Invalid original price value");
       }
-      payload.discount_price = price;
-      payload.original_price = price;
+
+      // Check if discount is explicitly provided
+      const hasExplicitDiscount =
+        product.discountPrice !== undefined &&
+        product.discountPrice !== null &&
+        String(product.discountPrice).trim() !== "" &&
+        Number(product.discountPrice) > 0;
+
+      if (hasExplicitDiscount) {
+        const disc = Number(product.discountPrice);
+        if (disc >= targetOriginal) {
+          throw new Error("Discounted selling price must be strictly lower than original price / MRP");
+        }
+        payload.original_price = targetOriginal;
+        payload.discount_price = disc;
+        payload.offer_percentage = Math.round(((targetOriginal - disc) / targetOriginal) * 100);
+      } else {
+        // No discount or discount removed
+        payload.original_price = targetOriginal;
+        payload.discount_price = targetOriginal;
+        payload.offer_percentage = 0;
+      }
     }
 
     if (product.description !== undefined) {

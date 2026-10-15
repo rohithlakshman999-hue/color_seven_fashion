@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, KeyboardEvent, FormEvent, use } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { ArrowLeft, X, Save, AlertCircle, Loader, Upload, Plus } from "lucide-react";
+import { ArrowLeft, X, Save, AlertCircle, Loader, Upload, Plus, Tag } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { useProducts } from "@/context/ProductContext";
@@ -15,6 +15,7 @@ import {
   brandOptionKey,
 } from "@/lib/catalogHelpers";
 import AdminSelect, { AdminSelectOption } from "@/components/AdminSelect";
+import { formatInrPrice } from "@/lib/pricing";
 
 function convertGoogleDriveUrl(url: string): string {
   const trimmed = url.trim();
@@ -61,7 +62,8 @@ export default function EditProductPage({
   const [brand, setBrand] = useState("");
   const [customBrand, setCustomBrand] = useState("");
   const [isCustomBrand, setIsCustomBrand] = useState(false);
-  const [price, setPrice] = useState("");
+  const [originalPrice, setOriginalPrice] = useState("");
+  const [discountPrice, setDiscountPrice] = useState("");
   const [stock, setStock] = useState("");
   const [category, setCategory] = useState<"Watches" | "Shoes" | "Clothing" | "Accessories">("Watches");
   const [description, setDescription] = useState("");
@@ -102,7 +104,13 @@ export default function EditProductPage({
       setCustomBrand("");
     }
 
-    setPrice(String(product.price));
+    const orig = product.originalPrice ?? product.price;
+    setOriginalPrice(String(orig));
+    if (product.discountPrice && product.discountPrice < orig) {
+      setDiscountPrice(String(product.discountPrice));
+    } else {
+      setDiscountPrice("");
+    }
     setStock(String(product.stock ?? 10));
     setCategory(product.category);
     setDescription(product.description);
@@ -233,17 +241,38 @@ export default function EditProductPage({
     e.preventDefault();
     setMessage(null);
     const validImages = images.map((i) => i.trim()).filter(Boolean);
-    const normalizedPrice = normalizePrice(price);
+    const origPrice = normalizePrice(originalPrice);
 
     if (!name.trim()) {
       setMessage({ type: "error", text: "Product name is required." });
       return;
     }
 
-    if (!price.trim() || normalizedPrice <= 0) {
-      setMessage({ type: "error", text: "Enter a valid price greater than 0." });
+    if (!originalPrice.trim() || origPrice <= 0) {
+      setMessage({ type: "error", text: "Enter a valid Original Price / MRP greater than ₹0." });
       return;
     }
+
+    const hasDiscountInput = discountPrice.trim() !== "";
+    const discPrice = hasDiscountInput ? normalizePrice(discountPrice) : null;
+
+    if (hasDiscountInput) {
+      if (discPrice === null || discPrice <= 0) {
+        setMessage({ type: "error", text: "Discounted selling price must be greater than ₹0." });
+        return;
+      }
+      if (discPrice >= origPrice) {
+        setMessage({
+          type: "error",
+          text: `Discounted selling price (₹${discPrice.toFixed(2)}) must be strictly lower than Original Price / MRP (₹${origPrice.toFixed(2)}).`,
+        });
+        return;
+      }
+    }
+
+    const finalSellingPrice = (hasDiscountInput && discPrice && discPrice < origPrice)
+      ? discPrice
+      : origPrice;
 
     if (validImages.length === 0) {
       setMessage({ type: "error", text: "Add at least one product image before saving." });
@@ -256,7 +285,9 @@ export default function EditProductPage({
       await updateProduct(id, {
         name: name.trim(),
         brand: finalBrand || "Colour Seven",
-        price: normalizedPrice,
+        price: finalSellingPrice,
+        originalPrice: origPrice,
+        discountPrice: (hasDiscountInput && discPrice && discPrice < origPrice) ? discPrice : (null as any),
         stock: parseInt(stock) || 0,
         category,
         images: validImages,
@@ -387,21 +418,6 @@ export default function EditProductPage({
           </div>
           <div className="space-y-2">
             <label className="text-xs uppercase tracking-wider text-zinc-500 font-medium">
-              Price (₹) *
-            </label>
-            <input
-              type="number"
-              value={price}
-              onChange={(e) => setPrice(e.target.value)}
-              required
-              min="0"
-              step="1"
-              placeholder="1799"
-              className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-white placeholder-zinc-600 focus:border-[var(--accent-1)] focus:outline-none transition-colors"
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="text-xs uppercase tracking-wider text-zinc-500 font-medium">
               Global Stock *
             </label>
             <input
@@ -416,6 +432,153 @@ export default function EditProductPage({
             />
           </div>
         </div>
+
+        {/* Pricing & Discount Controls */}
+        {(() => {
+          const orig = parseFloat(originalPrice);
+          const hasOrig = !isNaN(orig) && orig > 0;
+          const discTrimmed = discountPrice.trim();
+          const disc = discTrimmed !== "" ? parseFloat(discTrimmed) : null;
+          const hasDisc = disc !== null && !isNaN(disc);
+
+          let discountError = "";
+          let discountPercent = 0;
+          let hasActiveDiscount = false;
+
+          if (hasOrig && hasDisc) {
+            if (disc <= 0) {
+              discountError = "Discounted selling price must be greater than ₹0";
+            } else if (disc >= orig) {
+              discountError = `Discounted selling price (₹${disc.toFixed(2)}) must be strictly lower than Original Price / MRP (₹${orig.toFixed(2)})`;
+            } else {
+              discountPercent = Math.round(((orig - disc) / orig) * 100);
+              hasActiveDiscount = true;
+            }
+          }
+
+          return (
+            <div className="space-y-4 p-5 rounded-2xl border border-white/10 bg-zinc-900/60">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-base font-bold text-white flex items-center gap-2">
+                    <Tag className="w-4 h-4 text-[#c9a227]" />
+                    Pricing & Discount Controls
+                  </h3>
+                  <p className="text-xs text-zinc-400 mt-0.5">
+                    Manage the original retail MRP and promotional discounted selling price
+                  </p>
+                </div>
+                {hasActiveDiscount && (
+                  <span className="text-xs font-black text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full uppercase tracking-wider">
+                    {discountPercent}% OFF
+                  </span>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Original Price / MRP */}
+                <div className="space-y-2">
+                  <label className="text-xs uppercase tracking-wider text-zinc-400 font-medium flex items-center justify-between">
+                    <span>Original Price / MRP (₹) *</span>
+                    <span className="text-[10px] text-zinc-500">Regular full price</span>
+                  </label>
+                  <input
+                    type="number"
+                    value={originalPrice}
+                    onChange={(e) => setOriginalPrice(e.target.value)}
+                    required
+                    min="0"
+                    step="0.01"
+                    placeholder="e.g. 420.00"
+                    className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-white placeholder-zinc-600 focus:border-[var(--accent-1)] focus:outline-none transition-colors"
+                  />
+                  <p className="text-[11px] text-zinc-500">
+                    Shown with strikethrough when a discount is active.
+                  </p>
+                </div>
+
+                {/* Discounted Selling Price */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs uppercase tracking-wider text-zinc-400 font-medium">
+                      Discounted Selling Price (₹)
+                    </label>
+                    {discountPrice.trim() !== "" && (
+                      <button
+                        type="button"
+                        onClick={() => setDiscountPrice("")}
+                        className="text-[11px] text-red-400 hover:text-red-300 font-bold transition-colors underline"
+                      >
+                        Remove Discount
+                      </button>
+                    )}
+                  </div>
+                  <input
+                    type="number"
+                    value={discountPrice}
+                    onChange={(e) => setDiscountPrice(e.target.value)}
+                    min="0"
+                    step="0.01"
+                    placeholder="e.g. 299.00 (leave empty if no discount)"
+                    className={`w-full bg-black border rounded-xl px-4 py-3 text-white placeholder-zinc-600 focus:outline-none transition-colors ${
+                      discountError ? "border-red-500 focus:border-red-500" : "border-white/10 focus:border-[var(--accent-1)]"
+                    }`}
+                  />
+                  <p className="text-[11px] text-zinc-500">
+                    Leave empty to sell at regular MRP without a discount.
+                  </p>
+                </div>
+              </div>
+
+              {/* Error Alert */}
+              {discountError && (
+                <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-xs flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                  <span>{discountError}</span>
+                </div>
+              )}
+
+              {/* Live Preview */}
+              {hasOrig && !discountError && (
+                <div className="p-4 rounded-xl bg-black border border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <span className="text-[10px] uppercase tracking-widest text-zinc-500 font-bold block mb-1">
+                      Storefront Customer Preview
+                    </span>
+                    {hasActiveDiscount ? (
+                      <div className="flex items-baseline flex-wrap gap-2.5">
+                        <span className="text-sm text-zinc-500 line-through font-semibold">
+                          {formatInrPrice(orig)}
+                        </span>
+                        <span className="text-xl font-black text-white">
+                          {formatInrPrice(disc!)}
+                        </span>
+                        <span className="text-xs font-black text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded uppercase tracking-wider">
+                          {discountPercent}% OFF
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="text-lg font-black text-white">
+                        {formatInrPrice(orig)}
+                        <span className="text-xs font-normal text-zinc-500 ml-2">
+                          (Regular price — sold without discount badge)
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  {hasActiveDiscount && (
+                    <div className="text-right">
+                      <span className="text-[10px] uppercase tracking-widest text-zinc-500 block">Customer Savings</span>
+                      <span className="text-sm font-black text-emerald-400">
+                        {formatInrPrice(orig - disc!)} per unit
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
         {/* Category */}
         <div className="space-y-2">

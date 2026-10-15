@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useContactInfo } from "@/context/ContactInfoContext";
+import { formatInrPrice } from "@/lib/pricing";
 
 export default function CartPage() {
   const {
@@ -241,8 +242,20 @@ export default function CartPage() {
                           {item.size && item.color && <span>•</span>}
                           {item.color && <span>Color: {item.color}</span>}
                         </div>
-                        <div className="text-sm font-extrabold text-[var(--accent-1)] mt-1.5">
-                          ₹{item.price.toLocaleString("en-IN")} each
+                        <div className="mt-1.5 flex flex-wrap items-baseline gap-2">
+                          {item.originalPrice && item.originalPrice > item.price && (
+                            <span className="text-xs text-zinc-500 line-through">
+                              {formatInrPrice(item.originalPrice)}
+                            </span>
+                          )}
+                          <span className="text-sm font-extrabold text-white">
+                            {formatInrPrice(item.price)} each
+                          </span>
+                          {item.originalPrice && item.originalPrice > item.price && (
+                            <span className="text-[10px] font-black text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded">
+                              {Math.round(((item.originalPrice - item.price) / item.originalPrice) * 100)}% OFF
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>

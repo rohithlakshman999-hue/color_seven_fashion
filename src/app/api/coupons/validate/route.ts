@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { validateCouponForCheckout } from "@/lib/couponsStore";
+import { supabase } from "@/lib/supabase";
+import { calculateDiscount } from "@/lib/pricing";
 
 export const dynamic = "force-dynamic";
 
@@ -28,12 +30,33 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const cleanItems = rawItems.map((i: any) => ({
-      productId: String(i.productId || i.product?.id || i.id || ""),
-      price: Number(i.price !== undefined ? i.price : (i.product?.price || 0)),
-      quantity: Math.max(1, Number(i.quantity || 1)),
-      name: i.name ? String(i.name) : (i.product?.name ? String(i.product.name) : undefined),
-    }));
+    // Verify and enforce true server-side selling prices from DB
+    const cleanItems = await Promise.all(
+      rawItems.map(async (i: any) => {
+        const productId = String(i.productId || i.product?.id || i.id || "");
+        let serverPrice = Number(i.price !== undefined ? i.price : (i.product?.price || 0));
+
+        if (productId && supabase) {
+          const { data: dbProd } = await supabase
+            .from("products")
+            .select("original_price, discount_price")
+            .eq("id", productId)
+            .maybeSingle();
+
+          if (dbProd) {
+            const pricing = calculateDiscount(dbProd.original_price, dbProd.discount_price);
+            serverPrice = pricing.sellingPrice;
+          }
+        }
+
+        return {
+          productId,
+          price: serverPrice,
+          quantity: Math.max(1, Number(i.quantity || 1)),
+          name: i.name ? String(i.name) : (i.product?.name ? String(i.product.name) : undefined),
+        };
+      })
+    );
 
     const result = await validateCouponForCheckout(code, cleanItems);
 

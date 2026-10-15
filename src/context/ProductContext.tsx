@@ -25,6 +25,9 @@ export interface Product {
   name: string;
   brand: string;
   price: number;
+  originalPrice?: number;
+  discountPrice?: number;
+  discountPercentage?: number;
   category: "Watches" | "Shoes" | "Clothing" | "Accessories";
   images: string[];
   description: string;

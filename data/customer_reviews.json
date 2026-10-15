@@ -1,29 +1,29 @@
 [
   {
-    "id": "00000000-0000-0000-0000-000000000001",
-    "customer_name": "Dan C",
+    "id": "b939d5fa-e184-4833-87e6-2a76b5bfa871",
+    "customer_name": "Prabhu",
     "customer_image": null,
     "rating": 5,
-    "review_text": "Amazing collection of luxury watches and streetwear. They do help out if any doubts. Thank you for the amazing quality!",
-    "designation": "Verified Buyer",
-    "is_published": true,
-    "review_date": "2026-10-06",
-    "display_order": 0,
-    "created_at": "2026-10-14T04:09:28.583606+00:00",
-    "updated_at": "2026-10-14T04:09:28.583606+00:00"
-  },
-  {
-    "id": "00000000-0000-0000-0000-000000000002",
-    "customer_name": "Vikram Malhotra",
-    "customer_image": null,
-    "rating": 5,
-    "review_text": "The Rolex Submariner replica exceeded every single expectation. Weight, ceramic bezel feel, and sweep of the second hand are pure perfection.",
-    "designation": "Luxury Watch Collector, Delhi",
+    "review_text": "Vera level. This watch completely satisfied and met my expectations. Thank you, Colour Seven. Nandri🙏🙏",
+    "designation": "Tamilnadu",
     "is_published": true,
     "review_date": "2026-10-14",
     "display_order": 0,
-    "created_at": "2026-10-14T04:09:28.583606+00:00",
-    "updated_at": "2026-10-14T04:09:28.583606+00:00"
+    "created_at": "2026-10-14T18:11:01.756+00:00",
+    "updated_at": "2026-10-14T18:11:01.756+00:00"
+  },
+  {
+    "id": "fc049c9f-fbe0-4902-ac2b-da8fa2c1fa46",
+    "customer_name": "Gokul Krishna",
+    "customer_image": "https://xruuhhtxnhtaqzdyzimf.supabase.co/storage/v1/object/public/customer-reviews/avatars/1791986248010-1000769974.jpg",
+    "rating": 5,
+    "review_text": "Very much satisfied with the quality of this watch",
+    "designation": "Chennai",
+    "is_published": true,
+    "review_date": "2026-10-14",
+    "display_order": 0,
+    "created_at": "2026-10-14T13:58:59.725+00:00",
+    "updated_at": "2026-10-14T13:58:59.725+00:00"
   },
   {
     "id": "00000000-0000-0000-0000-000000000003",
@@ -52,14 +52,14 @@
     "updated_at": "2026-10-14T04:09:28.583606+00:00"
   },
   {
-    "id": "00000000-0000-0000-0000-000000000005",
-    "customer_name": "Rohan Mehta",
+    "id": "00000000-0000-0000-0000-000000000001",
+    "customer_name": "Dan C",
     "customer_image": null,
     "rating": 5,
-    "review_text": "Air Force 1s arrived in immaculate condition. Stitching, sole cushioning, and swoosh details are spot on. 10/10 customer experience.",
-    "designation": "Sneakerhead, Pune",
+    "review_text": "Amazing collection of luxury watches and streetwear. They do help out if any doubts. Thank you for the amazing quality!",
+    "designation": "Verified Buyer",
     "is_published": true,
-    "review_date": "2026-10-08",
+    "review_date": "2026-10-06",
     "display_order": 0,
     "created_at": "2026-10-14T04:09:28.583606+00:00",
     "updated_at": "2026-10-14T04:09:28.583606+00:00"
@@ -86,6 +86,32 @@
     "designation": "Verified Buyer, Hyderabad",
     "is_published": true,
     "review_date": "2026-10-02",
+    "display_order": 0,
+    "created_at": "2026-10-14T04:09:28.583606+00:00",
+    "updated_at": "2026-10-14T04:09:28.583606+00:00"
+  },
+  {
+    "id": "00000000-0000-0000-0000-000000000005",
+    "customer_name": "Rohan Mehta",
+    "customer_image": null,
+    "rating": 5,
+    "review_text": "Air Force 1s arrived in immaculate condition. Stitching, sole cushioning, and swoosh details are spot on. 10/10 customer experience.",
+    "designation": "Sneakerhead, Pune",
+    "is_published": true,
+    "review_date": "2026-10-08",
+    "display_order": 0,
+    "created_at": "2026-10-14T04:09:28.583606+00:00",
+    "updated_at": "2026-10-14T04:09:28.583606+00:00"
+  },
+  {
+    "id": "00000000-0000-0000-0000-000000000002",
+    "customer_name": "Vikram Malhotra",
+    "customer_image": null,
+    "rating": 5,
+    "review_text": "The Rolex Submariner replica exceeded every single expectation. Weight, ceramic bezel feel, and sweep of the second hand are pure perfection.",
+    "designation": "Luxury Watch Collector, Delhi",
+    "is_published": true,
+    "review_date": "2026-10-14",
     "display_order": 0,
     "created_at": "2026-10-14T04:09:28.583606+00:00",
     "updated_at": "2026-10-14T04:09:28.583606+00:00"

@@ -88,6 +88,34 @@ export async function adminAddProduct(payload: any) {
   if (!payload.brand_id || typeof payload.brand_id !== 'string') {
     throw new Error("Product brand_id is required and must be a string");
   }
+  // Validate price fields
+  if (payload.original_price !== undefined) {
+    const origPrice = Number(payload.original_price);
+    if (!Number.isFinite(origPrice) || origPrice < 0) {
+      throw new Error("Original price / MRP must be a valid non-negative number");
+    }
+  }
+
+  if (payload.discount_price !== undefined && payload.discount_price !== null) {
+    const discPrice = Number(payload.discount_price);
+    const origPrice = Number(payload.original_price ?? 0);
+    if (!Number.isFinite(discPrice) || discPrice < 0) {
+      throw new Error("Discounted price must be a valid non-negative number");
+    }
+
+    if (discPrice > 0 && origPrice > 0) {
+      if (discPrice >= origPrice) {
+        throw new Error("Discounted selling price must be strictly lower than the original price / MRP");
+      }
+      payload.offer_percentage = Math.round(((origPrice - discPrice) / origPrice) * 100);
+    } else if (discPrice === 0 || discPrice === origPrice) {
+      payload.discount_price = origPrice;
+      payload.offer_percentage = 0;
+    }
+  } else if (payload.original_price !== undefined) {
+    payload.discount_price = payload.original_price;
+    payload.offer_percentage = 0;
+  }
   
   const { data, error } = await client.from("products").insert(payload).select("id").single();
   if (error) throw new Error(`Failed to add product: ${error.message}`);
@@ -98,17 +126,39 @@ export async function adminUpdateProduct(id: string, payload: any) {
   validateSupabaseConnection();
   const client = supabaseAdmin!;
   
-  // Validate price if provided
-  if (payload.discount_price !== undefined) {
-    const price = Number(payload.discount_price);
-    if (!Number.isFinite(price) || price < 0) {
-      throw new Error("Discount price must be a valid non-negative number");
+  // Validate prices if provided
+  if (payload.original_price !== undefined) {
+    const origPrice = Number(payload.original_price);
+    if (!Number.isFinite(origPrice) || origPrice < 0) {
+      throw new Error("Original price / MRP must be a valid non-negative number");
     }
   }
-  if (payload.original_price !== undefined) {
-    const price = Number(payload.original_price);
-    if (!Number.isFinite(price) || price < 0) {
-      throw new Error("Original price must be a valid non-negative number");
+
+  if (payload.discount_price !== undefined && payload.discount_price !== null) {
+    const discPrice = Number(payload.discount_price);
+    if (!Number.isFinite(discPrice) || discPrice < 0) {
+      throw new Error("Discount price must be a valid non-negative number");
+    }
+
+    let origPrice = payload.original_price !== undefined ? Number(payload.original_price) : undefined;
+    if (origPrice === undefined) {
+      // Look up current original_price from database to cross-validate
+      const { data: currentProd } = await client.from("products").select("original_price").eq("id", id).maybeSingle();
+      if (currentProd) {
+        origPrice = Number(currentProd.original_price);
+      }
+    }
+
+    if (origPrice !== undefined && Number.isFinite(origPrice) && origPrice > 0) {
+      if (discPrice > 0) {
+        if (discPrice >= origPrice) {
+          throw new Error("Discounted selling price must be strictly lower than the original price / MRP");
+        }
+        payload.offer_percentage = Math.round(((origPrice - discPrice) / origPrice) * 100);
+      } else {
+        payload.discount_price = origPrice;
+        payload.offer_percentage = 0;
+      }
     }
   }
   

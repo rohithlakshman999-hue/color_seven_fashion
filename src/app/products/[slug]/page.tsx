@@ -20,6 +20,7 @@ import Link from "next/link";
 import { useCart } from "@/context/CartContext";
 import { useContactInfo } from "@/context/ContactInfoContext";
 import { products as defaultProducts } from "@/data/products";
+import { calculateDiscount, formatInrPrice } from "@/lib/pricing";
 
 type ProductDetail = Product & {
   brands?: Brand | null;
@@ -174,6 +175,8 @@ export default function SupabaseProductDetail({
       ) as string[])
     : [];
 
+  const pricing = calculateDiscount(product?.original_price, product?.discount_price);
+
   const handleAddToCart = () => {
     if (!product) return;
 
@@ -193,8 +196,8 @@ export default function SupabaseProductDetail({
       productId: product.id,
       name: product.name,
       brand: product.brands?.name || "Colour Seven",
-      price: Number(product.discount_price),
-      originalPrice: product.original_price ? Number(product.original_price) : undefined,
+      price: pricing.sellingPrice,
+      originalPrice: pricing.hasDiscount ? pricing.originalPrice : undefined,
       image: active?.image_url || images[0]?.image_url || "/images/chrono_watch.png",
       size: selectedSize,
       color: selectedColor,
@@ -215,7 +218,7 @@ export default function SupabaseProductDetail({
   );
 
   const generateInquiryMessage = () => {
-    const priceStr = `Rs. ${Number(product.discount_price).toLocaleString("en-IN")}`;
+    const priceStr = formatInrPrice(pricing.sellingPrice);
     let imageUrl = active?.image_url || "";
     if (imageUrl && !imageUrl.startsWith("http") && typeof window !== "undefined") {
       imageUrl = `${window.location.origin}${imageUrl.startsWith("/") ? "" : "/"}${imageUrl}`;
@@ -227,9 +230,12 @@ export default function SupabaseProductDetail({
     if (selectedColor && selectedColor !== "Default") message += `   Color: ${selectedColor}\n`;
     message += `   Quantity: ${quantity}\n`;
     message += `   Price: ${priceStr}\n`;
+    if (pricing.hasDiscount) {
+      message += `   Original MRP: ${formatInrPrice(pricing.originalPrice)} (${pricing.discountPercentage}% OFF)\n`;
+    }
     if (imageUrl) message += `   Image: ${imageUrl}\n`;
     message += `\n`;
-    message += `*Order Subtotal: Rs. ${(Number(product.discount_price) * quantity).toLocaleString("en-IN")}*\n\n`;
+    message += `*Order Subtotal: ${formatInrPrice(pricing.sellingPrice * quantity)}*\n\n`;
     message += "Please provide payment and shipping details.";
 
     return encodeURIComponent(message);
@@ -307,16 +313,33 @@ export default function SupabaseProductDetail({
               {product.categories?.name} {product.product_type ? `/ ${product.product_type}` : ""}
             </p>
 
-            <div className="mb-8 flex items-end gap-3">
-              <span className="text-3xl font-black text-[#c9a227]">
-                Rs. {Number(product.discount_price).toLocaleString("en-IN")}
-              </span>
-              {product.original_price !== product.discount_price && (
-                <span className="pb-1 text-sm text-zinc-500 line-through">
-                  Rs. {Number(product.original_price).toLocaleString("en-IN")}
+            {pricing.hasDiscount ? (
+              <div className="mb-8 flex flex-col gap-2">
+                <div className="flex items-baseline flex-wrap gap-3">
+                  <span
+                    className="text-xl md:text-2xl font-bold text-zinc-400 line-through decoration-zinc-500"
+                    title={`Original MRP: ${formatInrPrice(pricing.originalPrice)}`}
+                  >
+                    {formatInrPrice(pricing.originalPrice)}
+                  </span>
+                  <span className="text-3xl md:text-5xl font-black text-white">
+                    {formatInrPrice(pricing.sellingPrice)}
+                  </span>
+                  <span className="text-xs md:text-sm font-black text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-md uppercase tracking-wider">
+                    {pricing.discountPercentage}% OFF
+                  </span>
+                </div>
+                <p className="text-xs text-emerald-400 font-semibold">
+                  You save {formatInrPrice(pricing.savings)} ({pricing.discountPercentage}% OFF)
+                </p>
+              </div>
+            ) : (
+              <div className="mb-8">
+                <span className="text-3xl md:text-5xl font-black text-white">
+                  {formatInrPrice(pricing.sellingPrice)}
                 </span>
-              )}
-            </div>
+              </div>
+            )}
 
             <p className="mb-8 text-sm leading-7 text-zinc-400">
               {product.full_description || product.short_description}
